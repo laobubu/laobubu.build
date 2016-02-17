@@ -132,19 +132,18 @@ var MarkdownIME;
         }
         Utils.get_line_nodes = get_line_nodes;
         /**
-         * Find the path to one certain container.
-         * @return {Array<Node>}
+         * Get all parent elements.
+         *
+         * @returns {Element[]} the parents, exclude `node`, include `end`.
          */
         function build_parent_list(node, end) {
             var rtn = [];
-            var iter = node;
-            while (true) {
-                iter = iter.parentNode;
-                if (!iter)
-                    break;
+            var iter = node.parentElement;
+            while (iter) {
                 rtn.push(iter);
-                if (iter == end)
+                if (iter === end)
                     break;
+                iter = iter.parentElement;
             }
             return rtn;
         }
@@ -250,9 +249,10 @@ var MarkdownIME;
         /** extract strange things and get clean text. */
         DomChaos.prototype.digestHTML = function (html) {
             var repFun = this.createProxy.bind(this);
+            html = html.trim();
             html = html.replace(/<\/?\w+(\s+[^>]*)?>/g, repFun); //normal tags
-            html = html.replace(/<!--protect-->.*?<--\/protect-->/g, repFun); //regard a part of HTML as a entity. Wrap with `<--protect-->` and `<--/protect-->`
-            html = html.replace(/<!--.+?-->/g, repFun); //comment tags
+            html = html.replace(/<!--protect-->[\d\D]*?<--\/protect-->/g, repFun); //regard a part of HTML as a entity. Wrap with `<--protect-->` and `<--/protect-->`
+            html = html.replace(/<!--[\d\D]+?-->/g, repFun); //comment tags
             html = MarkdownIME.Utils.html_entity_decode(html);
             return html;
         };
@@ -1110,16 +1110,16 @@ var MarkdownIME;
 /// <reference path="Renderer.ts" />
 var MarkdownIME;
 (function (MarkdownIME) {
-    MarkdownIME.config = {
-        "wrapper": "p",
-    };
+    ;
     var Editor = (function () {
-        function Editor(editor) {
+        function Editor(editor, config) {
             this.editor = editor;
             this.document = editor.ownerDocument;
             this.window = editor.ownerDocument.defaultView;
             this.selection = this.window.getSelection();
             this.isTinyMCE = /tinymce/i.test(editor.id);
+            this.config = config || {};
+            this.config.__proto__ = Editor.globalConfig;
         }
         /**
          * Init MarkdownIME on this editor.
@@ -1136,15 +1136,17 @@ var MarkdownIME;
             return true;
         };
         /**
-         * Process the line on the cursor.
-         * call this from the event handler.
+         * get the line element where the cursor is in.
+         *
+         * @note when half_break is true, other things might not be correct.
          */
-        Editor.prototype.ProcessCurrentLine = function (ev) {
+        Editor.prototype.GetCurrentLine = function (range) {
             var _dummynode;
-            var tinymce_node;
-            var range = this.selection.getRangeAt(0);
-            if (!range.collapsed)
-                return; // avoid processing with strange selection
+            var result = {
+                line: null,
+                parent_tree: [],
+                half_break: false
+            };
             // assuming not using tinymce:
             // interesting, the node is always a TextNode.
             // sometimes it became the editor itself / the wrapper, because : 
@@ -1152,47 +1154,24 @@ var MarkdownIME;
             // 2. not on a text. might be after an image or sth.
             // 3. the cursor was set by some script. (eg. tinymce)
             var node = range.startContainer;
-            if (node.nodeType == Node.TEXT_NODE && range.startOffset != node.textContent.length) {
-                _dummynode = node;
-                while (!MarkdownIME.Utils.is_node_block(_dummynode))
-                    _dummynode = _dummynode.parentNode;
-                if (MarkdownIME.Utils.Pattern.NodeName.pre.test(_dummynode.nodeName)) {
-                    //safe insert <br> for <pre>, for browser always screw up
-                    //insert right half text
-                    node.parentNode.insertBefore(this.document.createTextNode(node.textContent.substr(range.startOffset)), node.nextSibling);
-                    _dummynode = this.document.createElement('br');
-                    node.parentNode.insertBefore(_dummynode, node.nextSibling);
-                    node.textContent = node.textContent.substr(0, range.startOffset);
-                    range.selectNode(_dummynode.nextSibling);
-                    range.collapse(true);
-                    this.selection.removeAllRanges();
-                    this.selection.addRange(range);
-                    ev.preventDefault();
-                }
-                return;
-            }
-            //if (node != node.parentNode.lastChild) return;
+            // proccess tinymce, after this part, the node will be the line element
             if (this.isTinyMCE) {
+                /** the block element tinymce created */
+                var tinymce_node = node;
+                while (!MarkdownIME.Utils.is_node_block(tinymce_node)) {
+                    tinymce_node = tinymce_node.parentElement;
+                }
                 //according to test, node will become <sth><br bogus="true"></sth>
                 //if this is half-break, then return
-                if (!(MarkdownIME.Utils.Pattern.NodeName.pre.test(node.nodeName)) &&
-                    !(node.childNodes.length == 1 && node.firstChild.nodeName == "BR"))
-                    return;
-                //so we get rid of it.
-                tinymce_node = node;
-                while (!MarkdownIME.Utils.is_node_block(tinymce_node)) {
-                    tinymce_node = tinymce_node.parentNode;
-                }
-                //the we get the real and normalized node.
-                if (MarkdownIME.Utils.Pattern.NodeName.pre.test(tinymce_node.nodeName)) {
-                    //<pre> is special
+                if (!(node.childNodes.length == 1 && node.firstChild.nodeName == "BR")) {
                     node = tinymce_node;
-                    while (node.lastChild && MarkdownIME.Utils.is_node_empty(node.lastChild)) {
-                        node.removeChild(node.lastChild);
-                    }
-                    node.appendChild(this.document.createElement('br'));
-                    node.appendChild(this.document.createElement('br'));
-                    tinymce_node = null;
+                    result.half_break = true;
+                }
+                else 
+                //otherwise we get the real and normalized node.
+                if (MarkdownIME.Utils.Pattern.NodeName.pre.test(tinymce_node.nodeName)) {
+                    //<pre> is special and tinymce handles it well
+                    node = tinymce_node;
                 }
                 else if (MarkdownIME.Utils.Pattern.NodeName.cell.test(tinymce_node.parentElement.nodeName)) {
                     //F**king created two <p> inside a table cell!
@@ -1203,62 +1182,81 @@ var MarkdownIME;
                         node.insertBefore(oldPChild, oldP);
                     }
                     node.removeChild(oldP);
+                    node.removeChild(tinymce_node);
                 }
                 else {
                     node = tinymce_node.previousSibling;
+                    tinymce_node.parentElement.removeChild(tinymce_node);
                     if (MarkdownIME.Utils.Pattern.NodeName.list.test(node.nodeName)) {
                         //tinymce helps us get rid of a list.
-                        return;
+                        //but we must get back to it.
+                        var tempLi = this.document.createElement('li');
+                        node.appendChild(tempLi);
+                        node = tempLi;
                     }
+                }
+            }
+            else {
+                //judge if is half_break
+                if (node.nodeType === Node.TEXT_NODE) {
+                    result.half_break = range.startOffset !== node.textContent.length;
                 }
             }
             //normalize the node object, if the node is 
             // 1. editor > #text , then create one wrapper and use the wrapper.
             // 2. blockwrapper > [wrapper >] #text , then use the blockwrapper.
             // 3. editor , which means editor is empty. then f**k user.
-            //cond 3
-            if (node == this.editor) {
-                node = this.document.createElement(MarkdownIME.config.wrapper || "div");
-                node.innerHTML = this.editor.innerHTML;
-                this.editor.innerHTML = "";
-                this.editor.appendChild(node);
-            }
             //cond 2
-            while (!MarkdownIME.Utils.is_node_block(node) && node.parentNode != this.editor) {
+            while (!MarkdownIME.Utils.is_node_block(node) && node !== this.editor) {
                 node = node.parentNode;
             }
-            //cond 1
-            if (!MarkdownIME.Utils.is_node_block(node) && node.parentNode == this.editor) {
-                _dummynode = this.document.createElement(MarkdownIME.config.wrapper || "div");
-                MarkdownIME.Utils.wrap(_dummynode, node);
-                node = _dummynode;
+            //cond 3
+            if (node === this.editor) {
+                node = this.document.createElement(this.config.wrapper);
+                var r1 = this.document.createRange();
+                r1.selectNodeContents(this.editor);
+                r1.surroundContents(node);
             }
             //generate the parent tree to make things easier
             var parent_tree = MarkdownIME.Utils.build_parent_list(node, this.editor);
             console.log(node, parent_tree);
-            //further normalizing.
-            //now node shall be a block node
-            while (!MarkdownIME.Utils.is_node_block(node))
-                node = parent_tree.shift();
+            result.line = node;
+            result.parent_tree = parent_tree;
+            return result;
+        };
+        /**
+         * Process the line on the cursor.
+         * call this from the event handler.
+         */
+        Editor.prototype.ProcessCurrentLine = function (ev) {
+            var range = this.selection.getRangeAt(0);
+            if (!range.collapsed)
+                return; // avoid processing with strange selection
+            var currentLine = this.GetCurrentLine(range);
+            var node = currentLine.line;
+            var parent_tree = currentLine.parent_tree;
             //finally start processing
             //for <pre> block, special work is needed.
             if (MarkdownIME.Utils.Pattern.NodeName.pre.test(node.nodeName)) {
-                var lineBreak = this.document.createTextNode("\n");
+                var lineBreak = this.document.createElement('br');
                 if (!this.isTinyMCE) {
                     //vanilla editor has bug.
+                    range.deleteContents();
                     range.insertNode(lineBreak);
                     var ns = lineBreak.nextSibling;
                     if (ns && (ns.nodeType === Node.TEXT_NODE) && (ns.textContent.length === 0)) {
                         lineBreak.parentNode.removeChild(ns);
                     }
                     if (!lineBreak.nextSibling) {
-                        console.log("fucking fix");
-                        lineBreak.parentNode.insertBefore(this.document.createElement("br"), lineBreak);
+                        lineBreak.parentNode.appendChild(this.document.createElement("br"));
                     }
-                    MarkdownIME.Utils.move_cursor_to_end(lineBreak);
+                    range.selectNodeContents(lineBreak.nextSibling);
+                    range.collapse(true);
+                    this.selection.removeAllRanges();
+                    this.selection.addRange(range);
                     ev.preventDefault();
                 }
-                var text = node.textContent;
+                var text = node.innerText;
                 if (/^\n*(`{2,3})?\n*$/.test(text.substr(text.length - 4))) {
                     var code = node.firstChild;
                     var n;
@@ -1289,8 +1287,8 @@ var MarkdownIME;
                 }
                 else if (MarkdownIME.Utils.Pattern.NodeName.cell.test(node.nodeName)) {
                     //empty table cell
-                    var tr = node.parentNode;
-                    var table = tr.parentNode.parentNode; // table > tbody > tr
+                    var tr = node.parentElement;
+                    var table = tr.parentElement.parentElement; // table > tbody > tr
                     if (tr.textContent.trim() === "") {
                         //if the whole row is empty, end the table.
                         tr.parentNode.removeChild(tr);
@@ -1316,6 +1314,8 @@ var MarkdownIME;
                 ev.preventDefault();
             }
             else {
+                if (currentLine.half_break)
+                    return;
                 if (node.lastChild.attributes && (node.lastChild.attributes.getNamedItem("data-mdime-bogus") ||
                     node.lastChild.attributes.getNamedItem("data-mce-bogus")))
                     node.removeChild(node.lastChild);
@@ -1329,12 +1329,11 @@ var MarkdownIME;
                 //Create another line after one node and move cursor to it.
                 if (this.CreateNewLine(node)) {
                     ev.preventDefault();
-                    tinymce_node && tinymce_node.parentNode.removeChild(tinymce_node);
                 }
                 else {
                     //let browser deal with strange things
                     console.error("MarkdownIME Cannot Handle Line Creating");
-                    MarkdownIME.Utils.move_cursor_to_end(tinymce_node || node);
+                    MarkdownIME.Utils.move_cursor_to_end(node);
                 }
             }
         };
@@ -1353,7 +1352,7 @@ var MarkdownIME;
             for (var i = tr.childNodes.length; i--;) {
                 if (MarkdownIME.Utils.Pattern.NodeName.cell.test(tr.childNodes[i].nodeName)) {
                     var newTd = newTr.insertCell(0);
-                    newTd.innerHTML = '<br data-mdime-bogus="true">';
+                    newTd.innerHTML = this.config.emptyBreak;
                     if (tr.childNodes[i] === refer) {
                         //this new cell is right under the old one
                         rtn = newTd;
@@ -1380,6 +1379,7 @@ var MarkdownIME;
             //so we create one new line without format.
             if (re.line.test(node.nodeName) ||
                 re.pre.test(node.nodeName) ||
+                re.li.test(node.nodeName) ||
                 re.hr.test(node.nodeName)) {
                 var tagName = re.li.test(node.nodeName) ? "li" : null;
                 _dummynode = this.GenerateEmptyLine(tagName);
@@ -1493,7 +1493,7 @@ var MarkdownIME;
                         }
                         else {
                             if (result.child.textContent.length == 0)
-                                result.child.innerHTML = '<br data-mdime-bogus="true">';
+                                result.child.innerHTML = this.config.emptyBreak;
                             MarkdownIME.Utils.move_cursor_to_end(result.child);
                         }
                     }
@@ -1506,9 +1506,13 @@ var MarkdownIME;
         Editor.prototype.GenerateEmptyLine = function (tagName) {
             if (tagName === void 0) { tagName = null; }
             var rtn;
-            rtn = this.document.createElement(tagName || MarkdownIME.config.wrapper || "div");
-            rtn.innerHTML = '<br data-mdime-bogus="true">';
+            rtn = this.document.createElement(tagName || this.config.wrapper || "div");
+            rtn.innerHTML = this.config.emptyBreak;
             return rtn;
+        };
+        Editor.globalConfig = {
+            wrapper: 'p',
+            emptyBreak: '<br data-mdime-bogus="true">'
         };
         return Editor;
     })();
@@ -1593,11 +1597,14 @@ var MarkdownIME;
     function Scan(window) {
         var document = window.document;
         var editors;
-        editors = [].slice.call(document.querySelectorAll('[contenteditable]'));
+        editors = [].slice.call(document.querySelectorAll('[contenteditable], [designMode]'));
         [].forEach.call(document.querySelectorAll('iframe'), function (i) {
-            var result = Scan(i.contentWindow);
-            if (result.length)
+            try {
+                var result = Scan(i.contentWindow);
                 editors = editors.concat(result);
+            }
+            catch (err) {
+            }
         });
         return editors;
     }
@@ -1606,7 +1613,7 @@ var MarkdownIME;
      * Enhance one or more editor.
      */
     function Enhance(editor) {
-        if (typeof editor['length'] === "number") {
+        if (typeof editor['length'] === "number" && editor[0]) {
             return [].map.call(editor, Enhance);
         }
         var rtn;
@@ -1620,19 +1627,13 @@ var MarkdownIME;
      * Bookmarklet Entry
      */
     function Bookmarklet(window) {
-        [].forEach.call(Enhance(Scan(window)), function (editor) {
+        Enhance(Scan(window)).forEach(function (editor) {
+            if (!editor)
+                return;
             MarkdownIME.UI.Toast.makeToast("MarkdownIME Activated", editor.editor, MarkdownIME.UI.Toast.SHORT).show();
         });
     }
     MarkdownIME.Bookmarklet = Bookmarklet;
-    /**
-     * Function alias, just for compatibility
-     * @deprecated since version 0.2
-     */
-    MarkdownIME.bookmarklet = Bookmarklet;
-    MarkdownIME.enhance = function (window, element) { Enhance(element); };
-    MarkdownIME.prepare = MarkdownIME.enhance;
-    MarkdownIME.scan = function (window) { Enhance(Scan(window)); };
 })(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="../Renderer/InlineRenderer.ts" />
 var MarkdownIME;

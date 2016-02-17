@@ -51,10 +51,11 @@ declare namespace MarkdownIME.Utils {
      */
     function get_line_nodes(anchor: Node, wrapper: Node): Array<Node>;
     /**
-     * Find the path to one certain container.
-     * @return {Array<Node>}
+     * Get all parent elements.
+     *
+     * @returns {Element[]} the parents, exclude `node`, include `end`.
      */
-    function build_parent_list(node: Node, end: Node): Array<Node>;
+    function build_parent_list(node: Node, end: Element): Element[];
     /** convert some chars to HTML entities (`&` -> `&amp;`) */
     function text2html(text: string): string;
     /** add slash chars for a RegExp */
@@ -511,20 +512,37 @@ declare namespace MarkdownIME.Renderer {
     function Render(node: HTMLElement): HTMLElement;
 }
 declare namespace MarkdownIME {
-    var config: {
-        "wrapper": string;
-    };
+    interface EditorConfig {
+        /** the wrapper tagName of a line. usually "p" or "div" */
+        wrapper?: string;
+        /** the outterHTML of a `<br>` placeholder. on Chrome/Firefox, an empty line must has at least one `<br>` */
+        emptyBreak?: string;
+        /** use proto chain to apply default config. */
+        __proto__?: EditorConfig;
+    }
     class Editor {
+        static globalConfig: EditorConfig;
+        config: EditorConfig;
         editor: Element;
         document: Document;
         window: Window;
         selection: Selection;
         isTinyMCE: boolean;
-        constructor(editor: Element);
+        constructor(editor: Element, config?: EditorConfig);
         /**
          * Init MarkdownIME on this editor.
          */
         Init(): boolean;
+        /**
+         * get the line element where the cursor is in.
+         *
+         * @note when half_break is true, other things might not be correct.
+         */
+        GetCurrentLine(range: Range): {
+            line: Element;
+            parent_tree: Element[];
+            half_break: boolean;
+        };
         /**
          * Process the line on the cursor.
          * call this from the event handler.
@@ -574,19 +592,11 @@ declare namespace MarkdownIME {
     /**
      * Enhance one or more editor.
      */
-    function Enhance(editor: Element | Element[]): Editor;
+    function Enhance(editor: Element | Element[]): Editor | Editor[];
     /**
      * Bookmarklet Entry
      */
     function Bookmarklet(window: Window): void;
-    /**
-     * Function alias, just for compatibility
-     * @deprecated since version 0.2
-     */
-    var bookmarklet: typeof Bookmarklet;
-    var enhance: (window: any, element: any) => void;
-    var prepare: (window: any, element: any) => void;
-    var scan: (window: any) => void;
 }
 declare namespace MarkdownIME.Addon {
     /**
