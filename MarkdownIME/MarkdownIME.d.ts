@@ -519,6 +519,8 @@ declare namespace MarkdownIME {
         emptyBreak?: string;
         /** use proto chain to apply default config. */
         __proto__?: EditorConfig;
+        /** a tester for IE9, DO NOT SET TO TRUE */
+        __proto_check__?: boolean;
     }
     class Editor {
         static globalConfig: EditorConfig;

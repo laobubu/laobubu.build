@@ -1120,6 +1120,11 @@ var MarkdownIME;
             this.isTinyMCE = /tinymce/i.test(editor.id);
             this.config = config || {};
             this.config.__proto__ = Editor.globalConfig;
+            if (!this.config.__proto_check__) {
+                for (var key in Editor.globalConfig) {
+                    this.config[key] = this.config[key] || Editor.globalConfig[key];
+                }
+            }
         }
         /**
          * Init MarkdownIME on this editor.
@@ -1512,7 +1517,8 @@ var MarkdownIME;
         };
         Editor.globalConfig = {
             wrapper: 'p',
-            emptyBreak: '<br data-mdime-bogus="true">'
+            emptyBreak: '<br data-mdime-bogus="true">',
+            __proto_check__: true
         };
         return Editor;
     })();
