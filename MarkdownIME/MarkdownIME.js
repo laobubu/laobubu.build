@@ -23,15 +23,26 @@ var MarkdownIME;
             var selection = ele.ownerDocument.defaultView.getSelection();
             var range = ele.ownerDocument.createRange();
             var focusNode = ele;
-            while (focusNode.nodeType == 1) {
-                var children = focusNode.childNodes;
-                var t = children[children.length - 1];
-                if (!t)
-                    break;
-                focusNode = t;
+            while (focusNode.nodeType === Node.ELEMENT_NODE) {
+                //find the last non-autoClose child element node, or child text node
+                var i = focusNode.childNodes.length;
+                while (--i !== -1) {
+                    var c = focusNode.childNodes[i];
+                    if ((c.nodeType === Node.TEXT_NODE) ||
+                        (c.nodeType === Node.ELEMENT_NODE)) {
+                        focusNode = c;
+                        break;
+                    }
+                }
+                if (i === -1) {
+                    break; //not found...
+                }
             }
-            range.selectNodeContents(focusNode);
-            range.collapse((focusNode.nodeName == "BR"));
+            if (Pattern.NodeName.autoClose.test(focusNode.nodeName))
+                range.selectNode(focusNode);
+            else
+                range.selectNodeContents(focusNode);
+            range.collapse(focusNode.nodeName === "BR");
             selection.removeAllRanges();
             selection.addRange(range);
         }
@@ -249,7 +260,6 @@ var MarkdownIME;
         /** extract strange things and get clean text. */
         DomChaos.prototype.digestHTML = function (html) {
             var repFun = this.createProxy.bind(this);
-            html = html.trim();
             html = html.replace(/<\/?\w+(\s+[^>]*)?>/g, repFun); //normal tags
             html = html.replace(/<!--protect-->[\d\D]*?<--\/protect-->/g, repFun); //regard a part of HTML as a entity. Wrap with `<--protect-->` and `<--/protect-->`
             html = html.replace(/<!--[\d\D]+?-->/g, repFun); //comment tags
@@ -1517,7 +1527,7 @@ var MarkdownIME;
         };
         Editor.globalConfig = {
             wrapper: 'p',
-            emptyBreak: '<br data-mdime-bogus="true">',
+            emptyBreak: /MSIE (9|10)\./.test(navigator.appVersion) ? '' : '<br data-mdime-bogus="true">',
             __proto_check__: true
         };
         return Editor;
