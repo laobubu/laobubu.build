@@ -45,6 +45,7 @@ var MarkdownIME;
             range.collapse(focusNode.nodeName === "BR");
             selection.removeAllRanges();
             selection.addRange(range);
+            (focusNode.nodeType === Node.ELEMENT_NODE ? focusNode : focusNode.parentElement).scrollIntoView();
         }
         Utils.move_cursor_to_end = move_cursor_to_end;
         /**
