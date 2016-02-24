@@ -1,3 +1,23 @@
+var __extends = (this && this.__extends) || function (d, b) {
+    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+};
+if (!Element.prototype['scrollIntoViewIfNeeded']) {
+    Element.prototype['scrollIntoViewIfNeeded'] = function (centerIfNeeded) {
+        centerIfNeeded = arguments.length === 0 ? true : !!centerIfNeeded;
+        var parent = this.parentNode, parentComputedStyle = window.getComputedStyle(parent, null), parentBorderTopWidth = parseInt(parentComputedStyle.getPropertyValue('border-top-width')), parentBorderLeftWidth = parseInt(parentComputedStyle.getPropertyValue('border-left-width')), overTop = this.offsetTop - parent.offsetTop < parent.scrollTop, overBottom = (this.offsetTop - parent.offsetTop + this.clientHeight - parentBorderTopWidth) > (parent.scrollTop + parent.clientHeight), overLeft = this.offsetLeft - parent.offsetLeft < parent.scrollLeft, overRight = (this.offsetLeft - parent.offsetLeft + this.clientWidth - parentBorderLeftWidth) > (parent.scrollLeft + parent.clientWidth), alignWithTop = overTop && !overBottom;
+        if ((overTop || overBottom) && centerIfNeeded) {
+            parent.scrollTop = this.offsetTop - parent.offsetTop - parent.clientHeight / 2 - parentBorderTopWidth + this.clientHeight / 2;
+        }
+        if ((overLeft || overRight) && centerIfNeeded) {
+            parent.scrollLeft = this.offsetLeft - parent.offsetLeft - parent.clientWidth / 2 - parentBorderLeftWidth + this.clientWidth / 2;
+        }
+        if ((overTop || overBottom || overLeft || overRight) && !centerIfNeeded) {
+            this.scrollIntoView(alignWithTop);
+        }
+    };
+}
 var MarkdownIME;
 (function (MarkdownIME) {
     var Utils;
@@ -45,6 +65,7 @@ var MarkdownIME;
             range.collapse(focusNode.nodeName === "BR");
             selection.removeAllRanges();
             selection.addRange(range);
+            focusNode.parentElement.scrollIntoViewIfNeeded(true);
         }
         Utils.move_cursor_to_end = move_cursor_to_end;
         /**
@@ -405,7 +426,7 @@ var MarkdownIME;
             }
         };
         return DomChaos;
-    })();
+    }());
     MarkdownIME.DomChaos = DomChaos;
 })(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="../Utils.ts" />
@@ -439,7 +460,7 @@ var MarkdownIME;
                 tree.screwUp(this.regex2_R, this.rightBracket);
             };
             return InlineWrapperRule;
-        })();
+        }());
         Renderer.InlineWrapperRule = InlineWrapperRule;
         /**
          * Use RegExp to do replace.
@@ -458,7 +479,7 @@ var MarkdownIME;
                 //not implemented
             };
             return InlineRegexRule;
-        })();
+        }());
         Renderer.InlineRegexRule = InlineRegexRule;
         /**
          * InlineRenderer: Renderer for inline objects
@@ -564,16 +585,11 @@ var MarkdownIME;
                 new InlineWrapperRule("code", "`")
             ];
             return InlineRenderer;
-        })();
+        }());
         Renderer.InlineRenderer = InlineRenderer;
     })(Renderer = MarkdownIME.Renderer || (MarkdownIME.Renderer = {}));
 })(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="../Utils.ts" />
-var __extends = (this && this.__extends) || function (d, b) {
-    for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
-    function __() { this.constructor = d; }
-    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-};
 var MarkdownIME;
 (function (MarkdownIME) {
     var Renderer;
@@ -654,7 +670,7 @@ var MarkdownIME;
                 return matchResult;
             };
             return BlockRendererContainer;
-        })();
+        }());
         Renderer.BlockRendererContainer = BlockRendererContainer;
         var BlockRendererContainers;
         (function (BlockRendererContainers) {
@@ -668,7 +684,7 @@ var MarkdownIME;
                     this.parentNodeName = "UL";
                 }
                 return UL;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.UL = UL;
             var OL = (function (_super) {
                 __extends(OL, _super);
@@ -687,7 +703,7 @@ var MarkdownIME;
                     return rtn;
                 };
                 return OL;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.OL = OL;
             var BLOCKQUOTE = (function (_super) {
                 __extends(BLOCKQUOTE, _super);
@@ -698,7 +714,7 @@ var MarkdownIME;
                     this.parentNodeName = "BLOCKQUOTE";
                 }
                 return BLOCKQUOTE;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.BLOCKQUOTE = BLOCKQUOTE;
             /** assuming a <hr> is just another block container and things go easier */
             var HR = (function (_super) {
@@ -718,7 +734,7 @@ var MarkdownIME;
                     return { parent: null, child: child };
                 };
                 return HR;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.HR = HR;
             var CodeBlock = (function (_super) {
                 __extends(CodeBlock, _super);
@@ -747,7 +763,7 @@ var MarkdownIME;
                     return { parent: pre, child: code };
                 };
                 return CodeBlock;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.CodeBlock = CodeBlock;
             var HeaderText = (function (_super) {
                 __extends(HeaderText, _super);
@@ -770,7 +786,7 @@ var MarkdownIME;
                     return { parent: null, child: child };
                 };
                 return HeaderText;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.HeaderText = HeaderText;
             var TableHeader = (function (_super) {
                 __extends(TableHeader, _super);
@@ -808,7 +824,7 @@ var MarkdownIME;
                     return { parent: table, child: th[0] };
                 };
                 return TableHeader;
-            })(BlockRendererContainer);
+            }(BlockRendererContainer));
             BlockRendererContainers.TableHeader = TableHeader;
         })(BlockRendererContainers = Renderer.BlockRendererContainers || (Renderer.BlockRendererContainers = {}));
         /**
@@ -859,7 +875,7 @@ var MarkdownIME;
                 new BlockRendererContainers.UL()
             ];
             return BlockRenderer;
-        })();
+        }());
         Renderer.BlockRenderer = BlockRenderer;
     })(Renderer = MarkdownIME.Renderer || (MarkdownIME.Renderer = {}));
 })(MarkdownIME || (MarkdownIME = {}));
@@ -1074,7 +1090,7 @@ var MarkdownIME;
                 this.shortcuts_cache.sort(function (a, b) { return (a.length - b.length); });
             };
             return EmojiAddon;
-        })();
+        }());
         Addon.EmojiAddon = EmojiAddon;
     })(Addon = MarkdownIME.Addon || (MarkdownIME.Addon = {}));
 })(MarkdownIME || (MarkdownIME = {}));
@@ -1192,7 +1208,7 @@ var MarkdownIME;
                     //F**king created two <p> inside a table cell!
                     node = tinymce_node.parentElement; //table cell
                     var oldP = tinymce_node.previousSibling;
-                    var oldPChild;
+                    var oldPChild = void 0;
                     while (oldPChild = oldP.firstChild) {
                         node.insertBefore(oldPChild, oldP);
                     }
@@ -1274,7 +1290,7 @@ var MarkdownIME;
                 var text = node.innerText;
                 if (/^\n*(`{2,3})?\n*$/.test(text.substr(text.length - 4))) {
                     var code = node.firstChild;
-                    var n;
+                    var n = void 0;
                     while (n = code.lastChild,
                         ((n.nodeType === 1 && n.nodeName === "BR") ||
                             (n.nodeType === 3 && /^\n*(```)?\n*$/.test(n.textContent))))
@@ -1531,7 +1547,7 @@ var MarkdownIME;
             __proto_check__: true
         };
         return Editor;
-    })();
+    }());
     MarkdownIME.Editor = Editor;
 })(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="Utils.ts" />
@@ -1581,7 +1597,7 @@ var MarkdownIME;
             Toast.SHORT = 800;
             Toast.LONG = 2000;
             return Toast;
-        })();
+        }());
         UI.Toast = Toast;
     })(UI = MarkdownIME.UI || (MarkdownIME.UI = {}));
 })(MarkdownIME || (MarkdownIME = {}));
@@ -1692,7 +1708,7 @@ var MarkdownIME;
                 });
             };
             return MathAddon;
-        })();
+        }());
         Addon.MathAddon = MathAddon;
     })(Addon = MarkdownIME.Addon || (MarkdownIME.Addon = {}));
 })(MarkdownIME || (MarkdownIME = {}));
