@@ -1023,7 +1023,7 @@ var MarkdownIME;
                     cry: [":'(", ":'-(", ':,(', ':,-('],
                     frowning: [':(', ':-('],
                     heart: ['<3'],
-                    two_hearts: [/\b(<3|❤){2}\b/g],
+                    two_hearts: [/(<3|❤){2}/g],
                     imp: [']:(', ']:-('],
                     innocent: ['o:)', 'O:)', 'o:-)', 'O:-)', '0:)', '0:-)'],
                     joy: [":')", ":'-)", ':,)', ':,-)', ":'D", ":'-D", ':,D', ':,-D'],
@@ -1072,7 +1072,7 @@ var MarkdownIME;
                     for (var s_i = shortcut_phrases.length - 1; s_i >= 0; s_i--) {
                         var regex = shortcut_phrases[s_i];
                         if (!(regex instanceof RegExp)) {
-                            regex = new RegExp("\\b" + MarkdownIME.Utils.text2regex(regex) + "\\b", "g");
+                            regex = new RegExp(MarkdownIME.Utils.text2regex(regex), "g");
                         }
                         this.shortcuts_cache.push({
                             regexp: regex,
