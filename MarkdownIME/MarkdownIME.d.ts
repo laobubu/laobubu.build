@@ -1,5 +1,5 @@
 interface Element {
-    scrollIntoViewIfNeeded(centerIfNeeded: boolean): any;
+    scrollIntoViewIfNeeded(centerIfNeeded?: boolean): any;
 }
 declare namespace MarkdownIME.Utils {
     namespace Pattern {

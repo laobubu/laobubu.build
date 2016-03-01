@@ -4,18 +4,12 @@ var __extends = (this && this.__extends) || function (d, b) {
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
 if (!Element.prototype['scrollIntoViewIfNeeded']) {
-    Element.prototype['scrollIntoViewIfNeeded'] = function (centerIfNeeded) {
-        centerIfNeeded = arguments.length === 0 ? true : !!centerIfNeeded;
-        var parent = this.parentNode, parentComputedStyle = window.getComputedStyle(parent, null), parentBorderTopWidth = parseInt(parentComputedStyle.getPropertyValue('border-top-width')), parentBorderLeftWidth = parseInt(parentComputedStyle.getPropertyValue('border-left-width')), overTop = this.offsetTop - parent.offsetTop < parent.scrollTop, overBottom = (this.offsetTop - parent.offsetTop + this.clientHeight - parentBorderTopWidth) > (parent.scrollTop + parent.clientHeight), overLeft = this.offsetLeft - parent.offsetLeft < parent.scrollLeft, overRight = (this.offsetLeft - parent.offsetLeft + this.clientWidth - parentBorderLeftWidth) > (parent.scrollLeft + parent.clientWidth), alignWithTop = overTop && !overBottom;
-        if ((overTop || overBottom) && centerIfNeeded) {
-            parent.scrollTop = this.offsetTop - parent.offsetTop - parent.clientHeight / 2 - parentBorderTopWidth + this.clientHeight / 2;
-        }
-        if ((overLeft || overRight) && centerIfNeeded) {
-            parent.scrollLeft = this.offsetLeft - parent.offsetLeft - parent.clientWidth / 2 - parentBorderLeftWidth + this.clientWidth / 2;
-        }
-        if ((overTop || overBottom || overLeft || overRight) && !centerIfNeeded) {
-            this.scrollIntoView(alignWithTop);
-        }
+    Element.prototype['scrollIntoViewIfNeeded'] = function () {
+        var wh = window.innerHeight
+            || document.documentElement.clientHeight
+            || document.body.clientHeight, rect = this.getBoundingClientRect();
+        if (rect.bottom > wh || rect.top < 0)
+            this.scrollIntoView();
     };
 }
 var MarkdownIME;
@@ -1029,7 +1023,7 @@ var MarkdownIME;
                     cry: [":'(", ":'-(", ':,(', ':,-('],
                     frowning: [':(', ':-('],
                     heart: ['<3'],
-                    two_hearts: [/(<3|❤){2}/g],
+                    two_hearts: [/\b(<3|❤){2}\b/g],
                     imp: [']:(', ']:-('],
                     innocent: ['o:)', 'O:)', 'o:-)', 'O:-)', '0:)', '0:-)'],
                     joy: [":')", ":'-)", ':,)', ':,-)', ":'D", ":'-D", ':,D', ':,-D'],
@@ -1078,7 +1072,7 @@ var MarkdownIME;
                     for (var s_i = shortcut_phrases.length - 1; s_i >= 0; s_i--) {
                         var regex = shortcut_phrases[s_i];
                         if (!(regex instanceof RegExp)) {
-                            regex = new RegExp(MarkdownIME.Utils.text2regex(regex), "g");
+                            regex = new RegExp("\\b" + MarkdownIME.Utils.text2regex(regex) + "\\b", "g");
                         }
                         this.shortcuts_cache.push({
                             regexp: regex,
