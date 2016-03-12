@@ -246,338 +246,234 @@ var MarkdownIME;
         Utils.generateElementHTML = generateElementHTML;
     })(Utils = MarkdownIME.Utils || (MarkdownIME.Utils = {}));
 })(MarkdownIME || (MarkdownIME = {}));
-/// <reference path="Utils.ts" />
-var MarkdownIME;
-(function (MarkdownIME) {
-    /** something like a bridge between text and HTML, used to manipulate inline objects. */
-    var DomChaos = (function () {
-        function DomChaos() {
-            /**
-             * the XML-free text; all the XML tags go to proxyStorage.
-             *
-             * use `/\uFFFC\uFFF9\w+\uFFFB/g` to detect the placeholder(proxy)
-             *
-             * if you get new HTML data, use `setHTML(data)`
-             * if you want to replace some text to HTML, use `replace(pattern, replacementHTML)`
-             */
-            this.text = "";
-            /** a dict containing XML marks extracted from the innerHTML  */
-            this.proxyStorage = {};
-            this.markCount = 0; // a random seed
-            this.markPrefix = String.fromCharCode(0xfffc, 0xfff9);
-            this.markSuffix = String.fromCharCode(0xfffb);
-        }
-        /** clone content of a real element */
-        DomChaos.prototype.cloneNode = function (htmlElement) {
-            var html = htmlElement.innerHTML;
-            this.setHTML(html);
-        };
-        /** extract strange things and get clean text. */
-        DomChaos.prototype.digestHTML = function (html) {
-            var repFun = this.createProxy.bind(this);
-            html = html.replace(/<\/?\w+(\s+[^>]*)?>/g, repFun); //normal tags
-            html = html.replace(/<!--protect-->[\d\D]*?<--\/protect-->/g, repFun); //regard a part of HTML as a entity. Wrap with `<--protect-->` and `<--/protect-->`
-            html = html.replace(/<!--[\d\D]+?-->/g, repFun); //comment tags
-            html = MarkdownIME.Utils.html_entity_decode(html);
-            return html;
-        };
-        /** set HTML content, which will update proxy storage */
-        DomChaos.prototype.setHTML = function (html) {
-            this.markCount = 0;
-            this.proxyStorage = {};
-            html = this.digestHTML(html);
-            this.text = html;
-        };
-        /**
-         * get HTML content. things in proxyStorage will be recovered.
-         *
-         * @argument {string} [althtml] - the HTML containing proxy replacement. If not set, the html of this DomChaos will be used.
-         */
-        DomChaos.prototype.getHTML = function (althtml) {
-            var _this = this;
-            var rtn = althtml || MarkdownIME.Utils.text2html(this.text); //assuming this will not ruin the Unicode chars
-            rtn = rtn.replace(/\uFFFC\uFFF9\w+\uFFFB/g, function (mark) { return (_this.proxyStorage[mark]); });
-            return rtn;
-        };
-        /**
-         * replace some text to HTML
-         * this is very helpful if the replacement is part of HTML / you are about to create new nodes.
-         *
-         * @argument {RegExp}   pattern to match the text (not HTML)
-         * @argument {function} replacementHTML the replacement HTML (not text. you shall convert the strange chars like `<` and `>` to html entities)
-         */
-        DomChaos.prototype.replace = function (pattern, replacementHTML) {
-            var self = this;
-            this.text = this.text.replace(pattern, function () {
-                var r2;
-                if (typeof replacementHTML === "function") {
-                    r2 = replacementHTML.apply(null, arguments);
-                }
-                else {
-                    r2 = replacementHTML;
-                }
-                return self.digestHTML(r2);
-            });
-        };
-        /**
-         * replace the tags from proxyStorage. this works like a charm when you want to un-render something.
-         *
-         * @argument {RegExp} pattern to match the proxy content.
-         * @argument {boolean} [keepProxy] set to true if you want to keep the proxy placeholder in the text.
-         *
-         * @example
-         * chaos.screwUp(/^<\/?b>$/gi, "**")
-         * //before: getHTML() == "Hello <b>World</b>"	proxyStorage == {1: "<b>", 2: "</b>"}
-         * //after:  getHTML() == "Hello **World**"		proxyStorage == {}
-         */
-        DomChaos.prototype.screwUp = function (pattern, replacement, keepProxy) {
-            var _this = this;
-            var screwed = {};
-            var not_screwed = {};
-            this.text = this.text.replace(/\uFFFC\uFFF9\w+\uFFFB/g, function (mark) {
-                if (screwed.hasOwnProperty(mark))
-                    return screwed[mark];
-                if (not_screwed.hasOwnProperty(mark))
-                    return mark;
-                var r1 = _this.proxyStorage[mark];
-                var r2 = r1.replace(pattern, replacement);
-                if (r1 === r2) {
-                    //nothing changed
-                    not_screwed[mark] = true;
-                    return mark;
-                }
-                if (keepProxy)
-                    _this.proxyStorage[mark] = r2;
-                else
-                    delete _this.proxyStorage[mark];
-                screwed[mark] = r2;
-                return r2;
-            });
-        };
-        /** storage some text to proxyStorage, and return its mark string */
-        DomChaos.prototype.createProxy = function (reality) {
-            var mark;
-            for (mark in this.proxyStorage) {
-                if (this.proxyStorage[mark] === reality)
-                    return mark;
-            }
-            mark = this.nextMark();
-            this.proxyStorage[mark] = reality;
-            return mark;
-        };
-        /** generate a random mark string */
-        DomChaos.prototype.nextMark = function () {
-            var mark;
-            do {
-                this.markCount++;
-                mark = this.markPrefix + this.markCount.toString(36) + this.markSuffix;
-            } while (this.text.indexOf(mark) !== -1);
-            return mark;
-        };
-        /**
-         * apply the HTML content to a real element and
-         * keep original child nodes as much as possible
-         *
-         * using a simple diff algorithm
-         */
-        DomChaos.prototype.applyTo = function (target) {
-            var shadow = target.ownerDocument.createElement('div');
-            shadow.innerHTML = this.getHTML();
-            //the childNodes from shadow not have corresponding nodes from target.
-            var wildChildren = [].slice.call(shadow.childNodes, 0);
-            for (var ti = 0; ti < target.childNodes.length; ti++) {
-                var tnode = target.childNodes[ti];
-                var match = false;
-                for (var si1 = 0; si1 < wildChildren.length; si1++) {
-                    var snode = wildChildren[si1];
-                    match = tnode.isEqualNode(snode);
-                    //cond1. replace the shadow's child
-                    if (match) {
-                        shadow.replaceChild(tnode, snode);
-                        wildChildren.splice(si1, 1);
-                        break;
-                    }
-                    //cond2. replace the shadow's child's child
-                    //which means some original node just got wrapped.
-                    if (snode.nodeType == Node.ELEMENT_NODE) {
-                        for (var si2 = 0; si2 < snode.childNodes.length; si2++) {
-                            var snodec = snode.childNodes[si2];
-                            if (tnode.isEqualNode(snodec)) {
-                                snode.replaceChild(tnode, snodec);
-                                match = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (match)
-                        break;
-                }
-                match && ti--; //if match, ti = ti - 1 , because the tnode moved to shadow.
-            }
-            target.innerHTML = ""; //clear all nodes.
-            while (shadow.childNodes.length) {
-                target.appendChild(shadow.firstChild);
-            }
-        };
-        return DomChaos;
-    }());
-    MarkdownIME.DomChaos = DomChaos;
-})(MarkdownIME || (MarkdownIME = {}));
-/// <reference path="../Utils.ts" />
-/// <reference path="../VDom.ts" />
 var MarkdownIME;
 (function (MarkdownIME) {
     var Renderer;
     (function (Renderer) {
-        /** the render rule for Markdown simple inline wrapper like *emphasis* ~~and~~ `inline code` */
-        var InlineWrapperRule = (function () {
-            function InlineWrapperRule(nodeName, leftBracket, rightBracket) {
-                this.nodeAttr = {};
-                this.nodeName = nodeName.toUpperCase();
-                this.leftBracket = leftBracket;
-                this.rightBracket = rightBracket || leftBracket;
-                this.name = this.nodeName + " with " + this.leftBracket;
-                this.regex = new RegExp('([^\\\\]|^)' + MarkdownIME.Utils.text2regex(this.leftBracket) + '(.*?[^\\\\])' + MarkdownIME.Utils.text2regex(this.rightBracket), "g");
-                this.regex2_L = new RegExp("^<" + this.nodeName + "(\\s+[^>]*)?>$", "gi");
-                this.regex2_R = new RegExp("^</" + this.nodeName + ">$", "gi");
+        var InlineRenderProcess = (function () {
+            function InlineRenderProcess(renderer, document, tokens) {
+                //iter. the index of current token.
+                this.i = 0;
+                //the stack that save i
+                this.iStack = [];
+                this.renderer = renderer;
+                this.document = document;
+                this.tokens = tokens;
             }
-            InlineWrapperRule.prototype.render = function (tree) {
+            /** turn tokens into plain string */
+            InlineRenderProcess.prototype.toString = function (tokens) {
+                var _t = tokens || this.tokens;
+                return _t.map(function (t) { return (typeof (t.data) === "string" ? t.data : t.data.textContent); }).join('');
+            };
+            /** turn tokens into DocumentFragment */
+            InlineRenderProcess.prototype.toFragment = function (tokens) {
                 var _this = this;
-                tree.replace(this.regex, function (whole, leading, wrapped) {
-                    if (wrapped === _this.rightBracket)
-                        return whole; //avoid something like ``` or ***
-                    return leading + MarkdownIME.Utils.generateElementHTML(_this.nodeName, _this.nodeAttr, MarkdownIME.Utils.text2html(wrapped));
+                var _t = tokens || this.tokens;
+                var rtn = this.document.createDocumentFragment();
+                _t.map(function (t) {
+                    var node;
+                    if (typeof (t.data) === "string") {
+                        node = _this.document.createTextNode(t.data);
+                    }
+                    else {
+                        node = t.data;
+                    }
+                    rtn.appendChild(node);
+                });
+                return rtn;
+            };
+            InlineRenderProcess.prototype.pushi = function () { this.iStack.push(this.i); };
+            InlineRenderProcess.prototype.popi = function () { this.i = this.iStack.pop(); };
+            InlineRenderProcess.prototype.stacki = function (level) { return this.iStack[this.iStack.length - level]; };
+            InlineRenderProcess.prototype.isToken = function (token, tokenChar) { return token && token.isToken && token.data === tokenChar; };
+            /** a safe splice for `this.token`; it updates the stack */
+            InlineRenderProcess.prototype.splice = function (startIndex, delCount) {
+                // console.log(`%cARGUMENT: ${startIndex}, ${delCount}, ${adding.length}`, 'background:#666;color:#FFF')
+                // this.debugDump(true);
+                var adding = [];
+                for (var _i = 2; _i < arguments.length; _i++) {
+                    adding[_i - 2] = arguments[_i];
+                }
+                var addCount = adding.length;
+                function newValue(i) {
+                    //dont know why minus 1 but it works
+                    if (i >= startIndex - 1 + delCount)
+                        return i - 1 - delCount + addCount;
+                    if (i > startIndex - 1)
+                        return startIndex - 1; //the deleted stuffs 
+                    return i;
+                }
+                this.i = newValue(this.i);
+                this.iStack = this.iStack.map(newValue);
+                var rtn = [].splice.apply(this.tokens, arguments);
+                // this.debugDump(true);
+                return rtn;
+            };
+            /** Iterate through all tokens, calling corresponding `InlineBracketRuleBase.Proc()` */
+            InlineRenderProcess.prototype.execute = function () {
+                var _this = this;
+                this.i = 0;
+                while (this.i < this.tokens.length) {
+                    var t = this.tokens[this.i];
+                    if (t.isToken) {
+                        //call every Rule.Proc() until someone handled the data (returning `true`)
+                        var handled = this.renderer.tokenChars[t.data].some(function (rule) { return rule.Proc(_this); });
+                    }
+                    this.i++;
+                }
+                this.mergeTextNode();
+                this.renderer.rules.forEach(function (rule) {
+                    var func = rule && rule['afterProc'];
+                    if (typeof func === 'function')
+                        func.call(rule, _this);
                 });
             };
-            InlineWrapperRule.prototype.unrender = function (tree) {
-                tree.screwUp(this.regex2_L, this.leftBracket);
-                tree.screwUp(this.regex2_R, this.rightBracket);
+            /** merge adjacent text nodes into one */
+            InlineRenderProcess.prototype.mergeTextNode = function () {
+                var tks = this.tokens, i = tks.length;
+                while (--i >= 1) {
+                    var thisToken = tks[i];
+                    var prevToken = tks[i - 1];
+                    if (typeof thisToken.data !== 'string' || typeof prevToken.data !== 'string')
+                        continue;
+                    prevToken.data += thisToken.data;
+                    tks.splice(i, 1);
+                }
             };
-            return InlineWrapperRule;
+            InlineRenderProcess.prototype.debugDump = function (output) {
+                var counter = 0;
+                var str = ("I = " + this.i + "\nSTACK = " + this.iStack.join(" -> ") + " \n 0\t ") +
+                    JSON.stringify(this.tokens)
+                        .slice(1, -1)
+                        .replace(/},{/g, function (_) { return ("}\n " + ++counter + "\t {"); });
+                if (output) {
+                    console.log(str);
+                }
+                return str;
+            };
+            return InlineRenderProcess;
         }());
-        Renderer.InlineWrapperRule = InlineWrapperRule;
-        /**
-         * Use RegExp to do replace.
-         * One implement of IInlineRendererReplacement.
-         */
-        var InlineRegexRule = (function () {
-            function InlineRegexRule(name, regex, replacement) {
-                this.name = name;
-                this.regex = regex;
-                this.replacement = replacement;
-            }
-            InlineRegexRule.prototype.render = function (tree) {
-                tree.replace(this.regex, this.replacement);
-            };
-            InlineRegexRule.prototype.unrender = function (tree) {
-                //not implemented
-            };
-            return InlineRegexRule;
-        }());
-        Renderer.InlineRegexRule = InlineRegexRule;
+        Renderer.InlineRenderProcess = InlineRenderProcess;
         /**
          * InlineRenderer: Renderer for inline objects
          *
-         *  [Things to be rendered] -> replacement chain -> [Renderer output]
-         *  (you can also add your custom inline replacement)
+         * Flow:
+         *
+         * 1. Parse: `Renderer.parse(HTMLElement) => IInlineToken[]`
+         * 2. Create a Process: `new InlineRenderProcess(...)`
+         * 3. Execute: `InlineRenderProcess.execute()`
+         * 4. Update HTMLElement
          *
          * @example
+         * ```
          * var renderer = new MarkdownIME.Renderer.InlineRenderer();
-         * renderer.AddMarkdownRules();
-         * renderer.RenderHTML('**Hello Markdown**');
-         * // returns "<b>Hello Markdown</b>"
+         * // Add Markdown rules here...
+         * renderer.RenderNode(node); // where node.innerHTML == "Hello **World<img src=...>**"
+         * assert(node.innerHTML == "Hello <b>World<img src=...></b>");
+         * ```
          */
         var InlineRenderer = (function () {
             function InlineRenderer() {
-                /** Rules for this Renderer */
                 this.rules = [];
+                /** The chars that could be a token */
+                this.tokenChars = {};
             }
-            /** Render, on a DomChaos object */
-            InlineRenderer.prototype.RenderChaos = function (tree) {
-                tree.screwUp(/^<!--escaping-->$/g, "\\");
-                for (var i = 0; i < this.rules.length; i++) {
-                    var rule = this.rules[i];
-                    if (typeof rule.unrender === "function")
-                        rule.unrender(tree);
-                }
-                for (var i = 0; i < this.rules.length; i++) {
-                    var rule = this.rules[i];
-                    rule.render(tree);
-                }
-                tree.replace(/\\([^\w\s])/g, function (whole, char) { return ("<!--escaping-->" + char); });
-            };
-            /** Render a HTML part, returns a new HTML part */
-            InlineRenderer.prototype.RenderHTML = function (html) {
-                var tree = new MarkdownIME.DomChaos();
-                tree.setHTML(html);
-                this.RenderChaos(tree);
-                return tree.getHTML();
-            };
-            /**
-             * Markdown Text to HTML
-             * @note after escaping, `\` will become `\u001B`.
-             * @return {string} HTML Result
-             */
-            InlineRenderer.prototype.RenderText = function (text) {
-                return this.RenderHTML(MarkdownIME.Utils.text2html(text));
-            };
-            /**
-             * do render on a textNode
-             * @note make sure the node is a textNode; function will NOT check!
-             * @return the output nodes
-             */
-            InlineRenderer.prototype.RenderTextNode = function (node) {
-                var docfrag = node.ownerDocument.createElement('div');
-                var nodes;
-                docfrag.textContent = node.textContent;
-                nodes = this.RenderNode(docfrag);
-                while (docfrag.lastChild) {
-                    node.parentNode.insertBefore(docfrag.lastChild, node.nextSibling);
-                }
-                node.parentNode.removeChild(node);
-                return nodes;
-            };
             /**
              * do render on a Node
-             * @return the output nodes
+             *
+             * @example
+             * ```
+             * renderer.RenderNode(node); //where node.innerHTML == "Hello **World<img src=...>**"
+             * assert(node.innerHTML == "Hello <b>World<img src=...></b>")
+             * ```
              */
             InlineRenderer.prototype.RenderNode = function (node) {
-                console.log('Inline renderer on', node);
-                var tree = new MarkdownIME.DomChaos();
-                tree.cloneNode(node);
-                this.RenderChaos(tree);
-                tree.applyTo(node);
-                return [].slice.call(node.childNodes, 0);
+                var tokens = this.parse(node);
+                var proc = new InlineRenderProcess(this, node.ownerDocument, tokens);
+                proc.execute();
+                var fragment = proc.toFragment();
+                if (node['innerHTML']) {
+                    node.innerHTML = "";
+                }
+                else {
+                    while (node.firstChild) {
+                        node.removeChild(node.firstChild);
+                    }
+                }
+                node.appendChild(fragment);
             };
-            /** Add basic Markdown rules into this InlineRenderer */
-            InlineRenderer.prototype.AddMarkdownRules = function () {
-                this.rules = InlineRenderer.markdownReplacement.concat(this.rules);
-                return this;
+            /**
+             * Extract tokens.
+             *
+             * @example
+             * ```
+             * var tokens = renderer.Parse(node); //where node.innerHTML == "Hello [<img src=...> \\]Welcome](xxx)"
+             * tokens[0] == {isToken: false, data: "Hello "}
+             * tokens[1] == {isToken: true,  data: "["}
+             * tokens[2] == {isToken: false, data: (ElementObject)}
+             * tokens[3] == {isToken: false, data: " \\]Welcome"}
+             * //...
+             * ```
+             */
+            InlineRenderer.prototype.parse = function (contentContainer) {
+                var rtn = [];
+                var childNodes = contentContainer.childNodes, childCount = childNodes.length, i = -1;
+                var strBuff = "";
+                function flushStringBuffer() {
+                    strBuff && rtn.push({
+                        isToken: false,
+                        data: strBuff
+                    });
+                    strBuff = "";
+                }
+                while (++i !== childCount) {
+                    var node = childNodes[i];
+                    if (node.nodeType !== Node.TEXT_NODE) {
+                        rtn.push({
+                            isToken: false,
+                            data: node
+                        });
+                        continue;
+                    }
+                    var escaped = false;
+                    var str = node.textContent;
+                    if (!str.length)
+                        continue;
+                    for (var j = 0; j !== str.length; j++) {
+                        var char = str.charAt(j);
+                        if (!escaped && this.tokenChars.hasOwnProperty(char)) {
+                            flushStringBuffer();
+                            rtn.push({
+                                isToken: true,
+                                data: char
+                            });
+                            continue; //skip updating strBuff
+                        }
+                        else if (escaped)
+                            escaped = false;
+                        else if (char === "\\")
+                            escaped = true;
+                        strBuff += char;
+                    }
+                    flushStringBuffer();
+                }
+                return rtn;
             };
             /** Add one extra replacing rule */
-            InlineRenderer.prototype.AddRule = function (rule) {
+            InlineRenderer.prototype.addRule = function (rule) {
                 this.rules.push(rule);
+                if (rule['Proc'] && rule['tokens']) {
+                    var mem_1 = this.tokenChars;
+                    rule['tokens'].forEach(function (tokenChar) {
+                        if (mem_1[tokenChar]) {
+                            mem_1[tokenChar].push(rule);
+                        }
+                        else {
+                            mem_1[tokenChar] = [rule];
+                        }
+                    });
+                }
             };
-            /** Suggested Markdown Replacement */
-            InlineRenderer.markdownReplacement = [
-                //NOTE process bold first, then italy.
-                new InlineRegexRule("img with title", /\!\[(.*?)\]\(([^\)\s]+)\s+("?)([^\)]+)\3\)/g, function (a, alt, src, b, title) {
-                    return MarkdownIME.Utils.generateElementHTML("img", { alt: alt, src: src, title: title });
-                }),
-                new InlineRegexRule("img", /\!\[(.*?)\]\(([^\)]+)\)/g, function (a, alt, src) {
-                    return MarkdownIME.Utils.generateElementHTML("img", { alt: alt, src: src });
-                }),
-                new InlineRegexRule("link with title", /\[(.*?)\]\(([^\)\s]+)\s+("?)([^\)]+)\3\)/g, function (a, text, href, b, title) {
-                    return MarkdownIME.Utils.generateElementHTML("a", { href: href, title: title }, MarkdownIME.Utils.text2html(text));
-                }),
-                new InlineRegexRule("link", /\[(.*?)\]\(([^\)]+)\)/g, function (a, text, href) {
-                    return MarkdownIME.Utils.generateElementHTML("a", { href: href }, MarkdownIME.Utils.text2html(text));
-                }),
-                new InlineWrapperRule("del", "~~"),
-                new InlineWrapperRule("strong", "**"),
-                new InlineWrapperRule("em", "*"),
-                new InlineWrapperRule("code", "`")
-            ];
             return InlineRenderer;
         }());
         Renderer.InlineRenderer = InlineRenderer;
@@ -873,6 +769,278 @@ var MarkdownIME;
         Renderer.BlockRenderer = BlockRenderer;
     })(Renderer = MarkdownIME.Renderer || (MarkdownIME.Renderer = {}));
 })(MarkdownIME || (MarkdownIME = {}));
+/// <reference path="../InlineRenderer.ts" />
+var MarkdownIME;
+(function (MarkdownIME) {
+    var Renderer;
+    (function (Renderer) {
+        var InlineBracketRuleBase = (function () {
+            function InlineBracketRuleBase() {
+            }
+            InlineBracketRuleBase.prototype.Proc = function (proc) {
+                var sti = proc.stacki(1), st = proc.tokens[sti] || { isToken: false, data: "" };
+                var tti = proc.i, tt = proc.tokens[tti];
+                if (st.isToken && this.isLeftBracket(proc, st, sti) &&
+                    tt.isToken && this.isRightBracket(proc, tt, tti)) {
+                    var i1 = proc.stacki(1), i2 = proc.i;
+                    this.ProcWrappedContent(proc, i1, i2);
+                    proc.popi();
+                    return true;
+                }
+                else if (tt.isToken && this.isLeftBracket(proc, tt, tti)) {
+                    proc.pushi();
+                    return true;
+                }
+                return false;
+            };
+            return InlineBracketRuleBase;
+        }());
+        Renderer.InlineBracketRuleBase = InlineBracketRuleBase;
+    })(Renderer = MarkdownIME.Renderer || (MarkdownIME.Renderer = {}));
+})(MarkdownIME || (MarkdownIME = {}));
+/// <reference path="InlineBracketRuleBase.ts" />
+/// <reference path="../InlineRenderer.ts" />
+var MarkdownIME;
+(function (MarkdownIME) {
+    var Renderer;
+    (function (Renderer) {
+        var Markdown;
+        (function (Markdown) {
+            /** the name list of built-in Markdown inline rules */
+            Markdown.InlineRules = [
+                "Emphasis",
+                "StrikeThrough",
+                "LinkAndImage",
+                "LinkAndImageData",
+                "InlineCode"
+            ];
+            /** basic support of **Bold** and **Emphasis** */
+            var Emphasis = (function (_super) {
+                __extends(Emphasis, _super);
+                function Emphasis() {
+                    _super.apply(this, arguments);
+                    this.name = "Markdown Emphasis";
+                    this.tokens = ['*'];
+                    this.tagNameEmphasis = "i";
+                    this.tagNameStrong = "b";
+                }
+                Emphasis.prototype.isLeftBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[0]);
+                };
+                Emphasis.prototype.isRightBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[0]);
+                };
+                Emphasis.prototype.ProcWrappedContent = function (proc, i1, i2) {
+                    if (i2 === i1 + 1) {
+                        //something like `**` of `***this*...`
+                        proc.pushi();
+                        proc.pushi(); //one more stack push because of the following `proc.popi();`
+                        return;
+                    }
+                    var innerTokens = proc.tokens.slice(i1 + 1, i2);
+                    var tagName = this.tagNameEmphasis;
+                    var document = proc.document;
+                    if (proc.isToken(proc.tokens[i1 - 1], this.tokens[0]) &&
+                        proc.isToken(proc.tokens[i2 + 1], this.tokens[0])) {
+                        /**
+                         * ## This is a `<strong>` tag
+                         * ```
+                         * The ***Fucking* one**
+                         *       >-------<         THIS IS CORRECT
+                         *     >>-------------<<   BUT THIS ONE!!
+                         * ```
+                         */
+                        tagName = this.tagNameStrong;
+                        i1 -= 1;
+                        i2 += 1;
+                        proc.popi();
+                    }
+                    else if (innerTokens.some(function (item) {
+                        return !item.isToken && /^(EM|I)$/.test(item.data["nodeName"]);
+                    })) {
+                        /**
+                         * ## Case 1: is a new start
+                         * ```
+                         * The ***Fucking* Fox *Jumps***
+                         *       >-------<         THIS IS CORRECT
+                         *      >--------------<   BUT WTF?! NOT A PAIR!
+                         * ```
+                         */
+                        if (innerTokens.length > 1) {
+                            proc.pushi();
+                            proc.pushi(); //one more stack push because of the following `proc.popi();`
+                        }
+                        else {
+                            proc.splice(i1, i2 - i1 + 1);
+                            var src = innerTokens[0].data;
+                            var dst = document.createElement(this.tagNameStrong);
+                            while (src.firstChild)
+                                dst.appendChild(src.firstChild);
+                            proc.splice(i1, 0, {
+                                isToken: false,
+                                data: dst
+                            });
+                        }
+                        return;
+                    }
+                    proc.splice(i1, i2 - i1 + 1);
+                    var fragment = proc.toFragment(innerTokens);
+                    var UE = document.createElement(tagName);
+                    UE.appendChild(fragment);
+                    proc.splice(i1, 0, {
+                        isToken: false,
+                        data: UE
+                    });
+                };
+                return Emphasis;
+            }(Renderer.InlineBracketRuleBase));
+            Markdown.Emphasis = Emphasis;
+            /** basic support of ~~StrikeThrough~~ */
+            var StrikeThrough = (function (_super) {
+                __extends(StrikeThrough, _super);
+                function StrikeThrough() {
+                    _super.apply(this, arguments);
+                    this.name = "Markdown StrikeThrough";
+                    this.tokens = ['~'];
+                    this.tagName = "del";
+                }
+                StrikeThrough.prototype.isLeftBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[0]) &&
+                        proc.isToken(proc.tokens[tokenIndex - 1], this.tokens[0]);
+                };
+                StrikeThrough.prototype.isRightBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[0]) &&
+                        proc.isToken(proc.tokens[tokenIndex + 1], this.tokens[0]);
+                };
+                StrikeThrough.prototype.ProcWrappedContent = function (proc, i1, i2) {
+                    if (i2 === i1 + 1)
+                        return;
+                    var document = proc.document;
+                    var tokens = proc.splice(i1 - 1, i2 - i1 + 3);
+                    tokens = tokens.slice(2, -2);
+                    var fragment = proc.toFragment(tokens);
+                    var UE = document.createElement(this.tagName);
+                    UE.appendChild(fragment);
+                    proc.splice(i1 - 1, 0, {
+                        isToken: false,
+                        data: UE
+                    });
+                };
+                return StrikeThrough;
+            }(Renderer.InlineBracketRuleBase));
+            Markdown.StrikeThrough = StrikeThrough;
+            /** link and image with `[]`
+             *
+             * Notice: the `src` OR `href` is not implemented here.
+             */
+            var LinkAndImage = (function (_super) {
+                __extends(LinkAndImage, _super);
+                function LinkAndImage() {
+                    _super.apply(this, arguments);
+                    this.name = "Markdown Link and Image";
+                    this.tokens = ['[', ']', '!'];
+                }
+                LinkAndImage.prototype.isLeftBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[0]);
+                };
+                LinkAndImage.prototype.isRightBracket = function (proc, token, tokenIndex) {
+                    return proc.isToken(token, this.tokens[1]);
+                };
+                LinkAndImage.prototype.ProcWrappedContent = function (proc, i1, i2) {
+                    var document = proc.document;
+                    var UE;
+                    var innerTokens = proc.tokens.slice(i1 + 1, i2);
+                    if (proc.isToken(proc.tokens[i1 - 1], this.tokens[2])) {
+                        UE = document.createElement("img");
+                        UE.setAttribute("alt", proc.toString(innerTokens));
+                        i1--;
+                    }
+                    else {
+                        if (innerTokens.length === 0)
+                            return;
+                        var fragment = proc.toFragment(innerTokens);
+                        UE = document.createElement("a");
+                        UE.setAttribute("href", "");
+                        UE.appendChild(fragment);
+                    }
+                    proc.splice(i1, i2 - i1 + 1, {
+                        isToken: false,
+                        data: UE
+                    });
+                };
+                return LinkAndImage;
+            }(Renderer.InlineBracketRuleBase));
+            Markdown.LinkAndImage = LinkAndImage;
+            var LinkAndImageData = (function () {
+                function LinkAndImageData() {
+                    this.name = "Markdown Link and Image Data";
+                    this.tokens = ["(", ")"];
+                }
+                LinkAndImageData.prototype.Proc = function (proc) {
+                    var i1 = proc.i, leftToken = proc.tokens[i1];
+                    if (!proc.isToken(leftToken, this.tokens[0]))
+                        return false;
+                    var pt = proc.tokens[i1 - 1];
+                    if (!pt || pt.isToken || !pt.data['nodeName'])
+                        return false;
+                    var ele = pt.data;
+                    var attrName;
+                    if (ele.tagName === "IMG") {
+                        attrName = "src";
+                    }
+                    else if (ele.tagName === "A") {
+                        attrName = "href";
+                    }
+                    else {
+                        return false;
+                    }
+                    while (++proc.i < proc.tokens.length) {
+                        var rightToken = proc.tokens[proc.i];
+                        if (proc.isToken(rightToken, this.tokens[1])) {
+                            var attrData = proc.toString(proc.tokens.slice(i1 + 1, proc.i)).trim();
+                            ele.setAttribute(attrName, attrData);
+                            proc.splice(i1, proc.i - i1 + 1);
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                return LinkAndImageData;
+            }());
+            Markdown.LinkAndImageData = LinkAndImageData;
+            var InlineCode = (function () {
+                function InlineCode() {
+                    this.name = "Markdown Inline Code";
+                    this.tokens = ["`"];
+                }
+                InlineCode.prototype.Proc = function (proc) {
+                    var i1 = proc.i, leftToken = proc.tokens[i1];
+                    if (!proc.isToken(leftToken, this.tokens[0]))
+                        return false;
+                    while (++proc.i < proc.tokens.length) {
+                        var rightToken = proc.tokens[proc.i];
+                        if (proc.isToken(rightToken, this.tokens[0])) {
+                            if (proc.i === i1 + 1) {
+                                // something like ``
+                                return false;
+                            }
+                            var code = proc.document.createElement('code');
+                            code.textContent = proc.toString(proc.tokens.slice(i1 + 1, proc.i)).trim();
+                            proc.splice(i1, proc.i - i1 + 1, {
+                                isToken: false,
+                                data: code
+                            });
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                return InlineCode;
+            }());
+            Markdown.InlineCode = InlineCode;
+        })(Markdown = Renderer.Markdown || (Renderer.Markdown = {}));
+    })(Renderer = MarkdownIME.Renderer || (MarkdownIME.Renderer = {}));
+})(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="../Renderer/InlineRenderer.ts" />
 var MarkdownIME;
 (function (MarkdownIME) {
@@ -880,37 +1048,37 @@ var MarkdownIME;
     (function (Addon) {
         /**
          * EmojiAddon is an add-on for InlineRenderer, translating `8-)` into ![😎](https://twemoji.maxcdn.com/36x36/1f60e.png)
+         *
          * Part of the code comes from `markdown-it/markdown-it-emoji`
          *
          * @see https://github.com/markdown-it/markdown-it-emoji/
          */
-        var EmojiAddon = (function () {
+        var EmojiAddon = (function (_super) {
+            __extends(EmojiAddon, _super);
             function EmojiAddon() {
+                var _this = this;
+                _super.call(this);
                 this.name = "Emoji";
+                this.tokens = [":"];
                 this.use_shortcuts = true;
                 /** use twemoji to get `img` tags if possible. if it bothers, disable it. */
                 this.use_twemoji = true;
                 this.twemoji_config = {};
-                this.full_syntax = /:(\w+):/g;
                 /** shortcuts RegExp cache. Order: [shortest, ..., longest] */
                 this.shortcuts_cache = [];
                 this.chars = {
-                    "smile": "😄",
-                    "smiley": "😃",
-                    "grinning": "😀",
+                    "smile": ["😄", "smiley"],
+                    "happy": "😃",
+                    "grin": ["😀", "grinning"],
                     "blush": "😊",
                     "wink": "😉",
+                    "sad": ["😔", "pensive"],
+                    "+1": "👍",
+                    "-1": "👎",
                     "heart_eyes": "😍",
-                    "kissing_heart": "😘",
-                    "kissing_closed_eyes": "😚",
-                    "kissing": "😗",
-                    "kissing_smiling_eyes": "😙",
-                    "stuck_out_tongue_winking_eye": "😜",
-                    "stuck_out_tongue_closed_eyes": "😝",
-                    "stuck_out_tongue": "😛",
+                    "kiss": ["😙", "kissing"],
+                    "tongue": "😜",
                     "flushed": "😳",
-                    "grin": "😁",
-                    "pensive": "😔",
                     "relieved": "😌",
                     "unamused": "😒",
                     "disappointed": "😞",
@@ -919,58 +1087,48 @@ var MarkdownIME;
                     "joy": "😂",
                     "sob": "😭",
                     "sleepy": "😪",
-                    "disappointed_relieved": "😥",
                     "cold_sweat": "😰",
-                    "sweat_smile": "😅",
                     "sweat": "😓",
                     "weary": "😩",
-                    "tired_face": "😫",
-                    "fearful": "😨",
+                    "tired": "😫",
+                    "fearful": ["😨", "fear"],
                     "scream": "😱",
                     "angry": "😠",
                     "rage": "😡",
                     "confounded": "😖",
-                    "laughing": "😆",
-                    "satisfied": "😆",
+                    "laugh": ["😆", "laughing", "satisfied"],
                     "yum": "😋",
                     "mask": "😷",
-                    "sunglasses": "😎",
+                    "sunglasses": ["😎", "cool"],
                     "sleeping": "😴",
-                    "dizzy_face": "😵",
+                    "dizzy": "😵",
                     "astonished": "😲",
-                    "worried": "😟",
-                    "frowning": "😦",
+                    "worry": ["😟", "worried"],
+                    "frown": ["😦", "frowning"],
                     "anguished": "😧",
                     "imp": "👿",
                     "smiling_imp": "😈",
                     "open_mouth": "😮",
-                    "neutral_face": "😐",
+                    "neutral": "😐",
                     "confused": "😕",
                     "hushed": "😯",
                     "no_mouth": "😶",
-                    "innocent": "😇",
+                    "innocent": ["😇", "angel"],
                     "smirk": "😏",
                     "expressionless": "😑",
-                    "smiley_cat": "😺",
-                    "smile_cat": "😸",
-                    "heart_eyes_cat": "😻",
-                    "kissing_cat": "😽",
-                    "smirk_cat": "😼",
-                    "scream_cat": "🙀",
-                    "crying_cat_face": "😿",
                     "joy_cat": "😹",
                     "pouting_cat": "😾",
-                    "heart": "❤️",
+                    "heart": ["❤️", "love"],
                     "broken_heart": "💔",
                     "two_hearts": "💕",
-                    "sparkles": "✨",
+                    "sparkles": ["✨", "star"],
                     "fist": "✊",
                     "hand": "✋",
                     "raised_hand": "✋",
                     "cat": "🐱",
                     "mouse": "🐭",
                     "cow": "🐮",
-                    "monkey_face": "🐵",
+                    "monkey": "🐵",
                     "star": "⭐",
                     "zap": "⚡",
                     "umbrella": "☔",
@@ -981,9 +1139,6 @@ var MarkdownIME;
                     "coffee": "☕",
                     "anchor": "⚓",
                     "wheelchair": "♿",
-                    "negative_squared_cross_mark": "❎",
-                    "white_check_mark": "✅",
-                    "loop": "➿",
                     "aries": "♈",
                     "taurus": "♉",
                     "gemini": "♊",
@@ -996,30 +1151,14 @@ var MarkdownIME;
                     "capricorn": "♑",
                     "aquarius": "♒",
                     "pisces": "♓",
-                    "x": "❌",
-                    "exclamation": "❗",
-                    "heavy_exclamation_mark": "❗",
-                    "question": "❓",
-                    "grey_exclamation": "❕",
-                    "grey_question": "❔",
-                    "heavy_plus_sign": "➕",
-                    "heavy_minus_sign": "➖",
-                    "heavy_division_sign": "➗",
-                    "curly_loop": "➰",
-                    "black_medium_small_square": "◾",
-                    "white_medium_small_square": "◽",
-                    "black_circle": "⚫",
-                    "white_circle": "⚪",
-                    "white_large_square": "⬜",
-                    "black_large_square": "⬛"
+                    "loop": "➰"
                 };
                 /** shortcuts. use RegExp instead of string would be better. */
                 this.shortcuts = {
                     angry: ['>:(', '>:-('],
                     blush: [':")', ':-")'],
                     broken_heart: ['</3', '<\\3'],
-                    // :\ and :-\ not used because of conflict with markdown escaping
-                    confused: [':/', ':-/'],
+                    confused: [':/', ':-/', ':\\', ':-\\'],
                     cry: [":'(", ":'-(", ':,(', ':,-('],
                     frowning: [':(', ':-('],
                     heart: ['<3'],
@@ -1029,40 +1168,81 @@ var MarkdownIME;
                     joy: [":')", ":'-)", ':,)', ':,-)', ":'D", ":'-D", ':,D', ':,-D'],
                     kissing: [':*', ':-*'],
                     laughing: ['x-)', 'X-)'],
-                    neutral_face: [':|', ':-|'],
+                    neutral: [':|', ':-|'],
                     open_mouth: [':o', ':-o', ':O', ':-O'],
                     rage: [':@', ':-@'],
                     smile: [':D', ':-D'],
                     smiley: [':)', ':-)'],
                     smiling_imp: [']:)', ']:-)'],
                     sob: [":,'(", ":,'-(", ';(', ';-('],
-                    stuck_out_tongue: [':P', ':-P'],
+                    tongue: [':P', ':-P'],
                     sunglasses: ['8-)', 'B-)'],
                     sweat: [',:(', ',:-('],
-                    sweat_smile: [',:)', ',:-)'],
                     unamused: [':s', ':-S', ':z', ':-Z', ':$', ':-$'],
                     wink: [';)', ';-)']
                 };
+                var _loop_1 = function() {
+                    ck = this_1.chars[key];
+                    if (ck && ck['length'] && ck['length'] > 1 && ck[1]['length'] > 1) {
+                        var ch_1 = ck.shift();
+                        ck.push(key);
+                        ck.forEach(function (key) { return _this.chars[key] = ch_1; });
+                    }
+                };
+                var this_1 = this;
+                var ck;
+                for (var key in this.chars) {
+                    _loop_1();
+                }
             }
-            EmojiAddon.prototype.render = function (tree) {
-                tree.replace(this.full_syntax, this.magic1.bind(this));
-                if (this.use_shortcuts) {
-                    if (!this.shortcuts_cache.length)
-                        this.UpdateShortcutCache();
-                    var self = this;
-                    for (var i = this.shortcuts_cache.length - 1; i >= 0; i--) {
-                        tree.replace(this.shortcuts_cache[i].regexp, function () { return self.magic1(null, self.shortcuts_cache[i].targetName); });
+            EmojiAddon.prototype.isLeftBracket = function (proc, token, tokenIndex) {
+                return proc.isToken(token, this.tokens[0]);
+            };
+            EmojiAddon.prototype.isRightBracket = function (proc, token, tokenIndex) {
+                return proc.isToken(token, this.tokens[0]);
+            };
+            EmojiAddon.prototype.ProcWrappedContent = function (proc, i1, i2) {
+                var key = proc.tokens[i1 + 1].data;
+                if (i2 !== i1 + 2)
+                    return false;
+                if (typeof (key) !== 'string')
+                    return false;
+                var char = this.chars[key];
+                if (typeof (char) !== 'string')
+                    return false;
+                proc.splice(i1, 3, {
+                    isToken: false,
+                    data: char
+                });
+                return true;
+            };
+            EmojiAddon.prototype.afterProc = function (proc) {
+                if (!this.shortcuts_cache.length)
+                    this.UpdateShortcutCache();
+                for (var i = 0; i < proc.tokens.length; i++) {
+                    var token = proc.tokens[i];
+                    if (typeof token.data !== 'string')
+                        continue;
+                    var str = token.data;
+                    for (var i_1 = this.shortcuts_cache.length - 1; i_1 >= 0; i_1--) {
+                        var char = this.chars[this.shortcuts_cache[i_1].targetName];
+                        str = str.replace(this.shortcuts_cache[i_1].regexp, char);
+                    }
+                    token.data = str;
+                }
+                if (this.use_twemoji && typeof twemoji !== "undefined") {
+                    var div = document.createElement('div');
+                    for (var i = 0; i < proc.tokens.length; i++) {
+                        var token = proc.tokens[i];
+                        if (typeof token.data !== 'string')
+                            continue;
+                        var str = token.data;
+                        div.innerHTML = twemoji.parse(str, this.twemoji_config);
+                        var args = proc.renderer.parse(div);
+                        args = [i, 1].concat(args);
+                        [].splice.apply(proc.tokens, args);
                     }
                 }
-            };
-            EmojiAddon.prototype.unrender = function (tree) { };
-            /** magic1 translates `:name:` into proper emoji char */
-            EmojiAddon.prototype.magic1 = function (fulltext, name) {
-                var rtnval = this.chars[name] || fulltext;
-                if (this.use_twemoji && typeof twemoji != "undefined") {
-                    rtnval = twemoji.parse(rtnval, this.twemoji_config);
-                }
-                return rtnval;
             };
             /** update the shortcuts RegExp cache. Run this after modifing the shortcuts! */
             EmojiAddon.prototype.UpdateShortcutCache = function () {
@@ -1084,13 +1264,14 @@ var MarkdownIME;
                 this.shortcuts_cache.sort(function (a, b) { return (a.length - b.length); });
             };
             return EmojiAddon;
-        }());
+        }(MarkdownIME.Renderer.InlineBracketRuleBase));
         Addon.EmojiAddon = EmojiAddon;
     })(Addon = MarkdownIME.Addon || (MarkdownIME.Addon = {}));
 })(MarkdownIME || (MarkdownIME = {}));
 /// <reference path="Utils.ts" />
 /// <reference path="Renderer/InlineRenderer.ts" />
 /// <reference path="Renderer/BlockRenderer.ts" />
+/// <reference path="Renderer/Inline/MarkdownRules.ts" />
 //people <3 emoji
 /// <reference path="Addon/EmojiAddon.ts" />
 var MarkdownIME;
@@ -1103,8 +1284,11 @@ var MarkdownIME;
         })(Pattern || (Pattern = {}));
         Renderer.inlineRenderer = new Renderer.InlineRenderer();
         Renderer.blockRenderer = new Renderer.BlockRenderer();
-        Renderer.inlineRenderer.AddMarkdownRules();
-        Renderer.inlineRenderer.AddRule(new MarkdownIME.Addon.EmojiAddon());
+        Renderer.Markdown.InlineRules.forEach(function (RuleName) {
+            var Rule = Renderer.Markdown[RuleName];
+            Renderer.inlineRenderer.addRule(new Rule());
+        });
+        Renderer.inlineRenderer.addRule(new MarkdownIME.Addon.EmojiAddon());
         Renderer.blockRenderer.AddMarkdownRules();
         /**
          * Make one Block Node beautiful!
@@ -1131,6 +1315,7 @@ var MarkdownIME;
 var MarkdownIME;
 (function (MarkdownIME) {
     ;
+    ;
     var Editor = (function () {
         function Editor(editor, config) {
             this.editor = editor;
@@ -1139,11 +1324,8 @@ var MarkdownIME;
             this.selection = this.window.getSelection();
             this.isTinyMCE = /tinymce/i.test(editor.id);
             this.config = config || {};
-            this.config.__proto__ = Editor.globalConfig;
-            if (!this.config.__proto_check__) {
-                for (var key in Editor.globalConfig) {
-                    this.config[key] = this.config[key] || Editor.globalConfig[key];
-                }
+            for (var key in Editor.globalConfig) {
+                this.config.hasOwnProperty(key) || (this.config[key] = Editor.globalConfig[key]);
             }
         }
         /**
@@ -1479,50 +1661,53 @@ var MarkdownIME;
                 }
             }
         };
+        /**
+         * execute the instant rendering.
+         *
+         * this will not work inside a `<pre>` element.
+         *
+         * @param {Range} range where the caret(cursor) is. You can get it from `window.getSelection().getRangeAt(0)`
+         * @return {boolean} successful or not.
+         */
+        Editor.prototype.instantRender = function (range) {
+            var element = range.startContainer.parentNode;
+            var blockNode = element;
+            while (!MarkdownIME.Utils.is_node_block(blockNode)) {
+                blockNode = blockNode.parentNode;
+            }
+            if (blockNode.nodeName === "PRE")
+                return false;
+            if (element === blockNode &&
+                range.startContainer.nodeType === Node.TEXT_NODE &&
+                range.startContainer === blockNode.firstChild) {
+                //execute blockRenderer.Elevate
+                var blockRendererResult = MarkdownIME.Renderer.blockRenderer.Elevate(blockNode);
+                if (blockRendererResult) {
+                    var newBlock = blockRendererResult.child;
+                    if (newBlock.textContent.length === 0) {
+                        newBlock.innerHTML = this.config.emptyBreak;
+                    }
+                    MarkdownIME.Utils.move_cursor_to_end(newBlock);
+                    return;
+                }
+            }
+            range.setStart(element, 0);
+            var fragment = range.extractContents();
+            MarkdownIME.Renderer.inlineRenderer.RenderNode(fragment);
+            var focusNode = fragment.lastChild;
+            element.insertBefore(fragment, element.firstChild);
+            MarkdownIME.Utils.move_cursor_to_end(focusNode);
+        };
+        /**
+         * keyupHandler
+         *
+         * 1. call `instantRender` when space key is released.
+         */
         Editor.prototype.keyupHandler = function (ev) {
             var keyCode = ev.keyCode || ev.which;
             var range = this.selection.getRangeAt(0);
-            if (!range.collapsed)
-                return; // avoid processing with strange selection
-            //if is typing, process special instant transform.
-            var node = range.startContainer;
-            if (node.nodeType == Node.TEXT_NODE) {
-                var text = node.textContent;
-                var text_after = text.substr(range.startOffset + 1);
-                var text_before = text.substr(0, range.startOffset);
-                if (text_after.length)
-                    return; //instant render only work at the end of line, yet.
-                if (text_before.length < 2)
-                    return; //too young, too simple
-                if (text_before.charAt(text_before.length - 2) == "\\")
-                    return; //escaping. run faster than others.
-                if (keyCode == 32) {
-                    //space key pressed.
-                    console.log("instant render at", node);
-                    var focusNode = node.nextSibling;
-                    var shall_do_block_rendering = true;
-                    while (!MarkdownIME.Utils.is_node_block(node)) {
-                        if (shall_do_block_rendering && node != node.parentNode.firstChild) {
-                            shall_do_block_rendering = false;
-                        }
-                        node = node.parentNode;
-                    }
-                    console.log("fix to ", node);
-                    if (node != this.editor && node.nodeName != "PRE") {
-                        var result = shall_do_block_rendering ? MarkdownIME.Renderer.blockRenderer.Elevate(node) : null;
-                        if (result == null) {
-                            //failed to elevate. this is just a plian inline rendering work.
-                            var result_1 = MarkdownIME.Renderer.inlineRenderer.RenderNode(node);
-                            var tail = (focusNode && focusNode.previousSibling) || result_1.pop();
-                            MarkdownIME.Utils.move_cursor_to_end(tail);
-                        }
-                        else {
-                            if (result.child.textContent.length == 0)
-                                result.child.innerHTML = this.config.emptyBreak;
-                            MarkdownIME.Utils.move_cursor_to_end(result.child);
-                        }
-                    }
-                }
+            if (keyCode === 32 && range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+                this.instantRender(range);
             }
         };
         /**
@@ -1537,8 +1722,7 @@ var MarkdownIME;
         };
         Editor.globalConfig = {
             wrapper: 'p',
-            emptyBreak: /MSIE (9|10)\./.test(navigator.appVersion) ? '' : '<br data-mdime-bogus="true">',
-            __proto_check__: true
+            emptyBreak: /MSIE (9|10)\./.test(navigator.appVersion) ? '' : '<br data-mdime-bogus="true">'
         };
         return Editor;
     }());
@@ -1672,7 +1856,7 @@ var MarkdownIME;
          * This addon MUST have a higher priority, than other inline elements like emphasising.
          *
          * To enable, execute this:
-         *  `MarkdownIME.Renderer.inlineRenderer.rules.unshift(new MarkdownIME.Addon.MathAddon())`
+         *  `MarkdownIME.Renderer.inlineRenderer.addRule(new MarkdownIME.Addon.MathAddon())`
          *
          * Use CODECOGS API to generate the picture.
          * @see http://latex.codecogs.com/eqneditor/editor.php
@@ -1684,22 +1868,32 @@ var MarkdownIME;
                 this.name = "MathFormula";
                 //this is the formula image URL prefix.
                 this.imgServer = 'http://latex.codecogs.com/gif.latex?';
-                this.regex = /([^\\]|^)(\${1,2})(.*?[^\\])\2/g;
+                this.tokens = ["$"];
             }
-            MathAddon.prototype.render = function (tree) {
-                var _this = this;
-                tree.replace(this.regex, function (whole, leading, bracket, formula) {
-                    // var rtn = `<!--protect--><script type="math/tex">${wrapped}</script><!--/protect-->`;
-                    var formulaHtmlized = MarkdownIME.Utils.text2html(formula);
-                    var imgUrl = _this.imgServer + encodeURIComponent(formula);
-                    var rtn = "<!--protect--><!--formula:" + formulaHtmlized + "--><img alt=\"" + formulaHtmlized + "\" class=\"formula\" src=\"" + imgUrl + "\"><!--/protect-->";
-                    return leading + rtn;
-                });
-            };
-            MathAddon.prototype.unrender = function (tree) {
-                tree.screwUp(/<!--protect--><!--formula:(.+?)--><img .+?><!--\/protect-->/g, function (whole, formulaHtmlized) {
-                    return '$' + MarkdownIME.Utils.html_entity_decode(formulaHtmlized) + '$';
-                });
+            MathAddon.prototype.Proc = function (proc) {
+                var i1 = proc.i, leftToken = proc.tokens[i1];
+                if (!proc.isToken(leftToken, this.tokens[0]))
+                    return false;
+                while (++proc.i < proc.tokens.length) {
+                    var rightToken = proc.tokens[proc.i];
+                    if (proc.isToken(rightToken, this.tokens[0])) {
+                        if (proc.i === i1 + 1) {
+                            // something like $$ , not valid
+                            return false;
+                        }
+                        var img = proc.document.createElement('img');
+                        var formula = proc.toString(proc.tokens.slice(i1 + 1, proc.i)).trim();
+                        var imgUrl = this.imgServer + encodeURIComponent(formula);
+                        img.setAttribute("src", imgUrl);
+                        img.setAttribute("alt", formula);
+                        proc.tokens.splice(i1, proc.i - i1 + 1, {
+                            isToken: false,
+                            data: img
+                        });
+                        return true;
+                    }
+                }
+                return false;
             };
             return MathAddon;
         }());

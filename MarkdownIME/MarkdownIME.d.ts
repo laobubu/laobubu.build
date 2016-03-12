@@ -80,146 +80,94 @@ declare namespace MarkdownIME.Utils {
      */
     function generateElementHTML(nodeName: string, props?: Object, innerHTML?: string): string;
 }
-declare namespace MarkdownIME {
-    /** something like a bridge between text and HTML, used to manipulate inline objects. */
-    class DomChaos {
-        /**
-         * the XML-free text; all the XML tags go to proxyStorage.
-         *
-         * use `/\uFFFC\uFFF9\w+\uFFFB/g` to detect the placeholder(proxy)
-         *
-         * if you get new HTML data, use `setHTML(data)`
-         * if you want to replace some text to HTML, use `replace(pattern, replacementHTML)`
-         */
-        text: string;
-        /** a dict containing XML marks extracted from the innerHTML  */
-        proxyStorage: any;
-        /** clone content of a real element */
-        cloneNode(htmlElement: HTMLElement): void;
-        /** extract strange things and get clean text. */
-        digestHTML(html: string): string;
-        /** set HTML content, which will update proxy storage */
-        setHTML(html: string): void;
-        /**
-         * get HTML content. things in proxyStorage will be recovered.
-         *
-         * @argument {string} [althtml] - the HTML containing proxy replacement. If not set, the html of this DomChaos will be used.
-         */
-        getHTML(althtml?: string): string;
-        /**
-         * replace some text to HTML
-         * this is very helpful if the replacement is part of HTML / you are about to create new nodes.
-         *
-         * @argument {RegExp}   pattern to match the text (not HTML)
-         * @argument {function} replacementHTML the replacement HTML (not text. you shall convert the strange chars like `<` and `>` to html entities)
-         */
-        replace(pattern: RegExp | string, replacementHTML: string | ((...matchResult: string[]) => string)): void;
-        /**
-         * replace the tags from proxyStorage. this works like a charm when you want to un-render something.
-         *
-         * @argument {RegExp} pattern to match the proxy content.
-         * @argument {boolean} [keepProxy] set to true if you want to keep the proxy placeholder in the text.
-         *
-         * @example
-         * chaos.screwUp(/^<\/?b>$/gi, "**")
-         * //before: getHTML() == "Hello <b>World</b>"	proxyStorage == {1: "<b>", 2: "</b>"}
-         * //after:  getHTML() == "Hello **World**"		proxyStorage == {}
-         */
-        screwUp(pattern: RegExp, replacement: string | ((...matchResult: string[]) => string), keepProxy?: boolean): void;
-        /** storage some text to proxyStorage, and return its mark string */
-        createProxy(reality: string): string;
-        markCount: number;
-        markPrefix: string;
-        markSuffix: string;
-        /** generate a random mark string */
-        nextMark(): string;
-        /**
-         * apply the HTML content to a real element and
-         * keep original child nodes as much as possible
-         *
-         * using a simple diff algorithm
-         */
-        applyTo(target: HTMLElement): void;
-    }
-}
 declare namespace MarkdownIME.Renderer {
-    /**
-     * IInlineRendererReplacement
-     * @description can be used to implement customized replacement.
-     */
+    interface IInlineToken {
+        isToken: boolean;
+        data: string | Node;
+    }
     interface IInlineRule {
         name: string;
-        render(tree: DomChaos): any;
-        unrender?(tree: DomChaos): any;
     }
-    /** the render rule for Markdown simple inline wrapper like *emphasis* ~~and~~ `inline code` */
-    class InlineWrapperRule implements IInlineRule {
-        name: string;
-        nodeName: string;
-        leftBracket: string;
-        rightBracket: string;
-        nodeAttr: {};
-        regex: RegExp;
-        regex2_L: RegExp;
-        regex2_R: RegExp;
-        constructor(nodeName: string, leftBracket: string, rightBracket?: string);
-        render(tree: DomChaos): void;
-        unrender(tree: DomChaos): void;
+    interface IInlineTokenRule extends IInlineRule {
+        /** token chars that this rule needs */
+        tokens: string[];
+        Proc(InlineRenderProcess: any): boolean;
+        /** callback when process is finished */
+        afterProc?(InlineRenderProcess: any): any;
     }
-    /**
-     * Use RegExp to do replace.
-     * One implement of IInlineRendererReplacement.
-     */
-    class InlineRegexRule implements IInlineRule {
-        name: string;
-        regex: RegExp;
-        replacement: any;
-        constructor(name: string, regex: RegExp, replacement: any);
-        render(tree: DomChaos): void;
-        unrender(tree: DomChaos): void;
+    class InlineRenderProcess {
+        renderer: InlineRenderer;
+        tokens: IInlineToken[];
+        document: Document;
+        i: number;
+        iStack: number[];
+        constructor(renderer: any, document: any, tokens: any);
+        /** turn tokens into plain string */
+        toString(tokens?: IInlineToken[]): string;
+        /** turn tokens into DocumentFragment */
+        toFragment(tokens?: IInlineToken[]): DocumentFragment;
+        pushi(): void;
+        popi(): void;
+        stacki(level: number): number;
+        isToken(token: IInlineToken, tokenChar: string): boolean;
+        /** a safe splice for `this.token`; it updates the stack */
+        splice(startIndex: number, delCount: number, ...adding: IInlineToken[]): IInlineToken[];
+        /** Iterate through all tokens, calling corresponding `InlineBracketRuleBase.Proc()` */
+        execute(): void;
+        /** merge adjacent text nodes into one */
+        mergeTextNode(): void;
+        debugDump(output?: boolean): string;
     }
     /**
      * InlineRenderer: Renderer for inline objects
      *
-     *  [Things to be rendered] -> replacement chain -> [Renderer output]
-     *  (you can also add your custom inline replacement)
+     * Flow:
+     *
+     * 1. Parse: `Renderer.parse(HTMLElement) => IInlineToken[]`
+     * 2. Create a Process: `new InlineRenderProcess(...)`
+     * 3. Execute: `InlineRenderProcess.execute()`
+     * 4. Update HTMLElement
      *
      * @example
+     * ```
      * var renderer = new MarkdownIME.Renderer.InlineRenderer();
-     * renderer.AddMarkdownRules();
-     * renderer.RenderHTML('**Hello Markdown**');
-     * // returns "<b>Hello Markdown</b>"
+     * // Add Markdown rules here...
+     * renderer.RenderNode(node); // where node.innerHTML == "Hello **World<img src=...>**"
+     * assert(node.innerHTML == "Hello <b>World<img src=...></b>");
+     * ```
      */
     class InlineRenderer {
-        /** Suggested Markdown Replacement */
-        static markdownReplacement: IInlineRule[];
-        /** Rules for this Renderer */
         rules: IInlineRule[];
-        /** Render, on a DomChaos object */
-        RenderChaos(tree: DomChaos): void;
-        /** Render a HTML part, returns a new HTML part */
-        RenderHTML(html: string): string;
-        /**
-         * Markdown Text to HTML
-         * @note after escaping, `\` will become `\u001B`.
-         * @return {string} HTML Result
-         */
-        RenderText(text: string): string;
-        /**
-         * do render on a textNode
-         * @note make sure the node is a textNode; function will NOT check!
-         * @return the output nodes
-         */
-        RenderTextNode(node: Node): Node[];
+        /** The chars that could be a token */
+        tokenChars: {
+            [char: string]: IInlineTokenRule[];
+        };
         /**
          * do render on a Node
-         * @return the output nodes
+         *
+         * @example
+         * ```
+         * renderer.RenderNode(node); //where node.innerHTML == "Hello **World<img src=...>**"
+         * assert(node.innerHTML == "Hello <b>World<img src=...></b>")
+         * ```
          */
-        RenderNode(node: HTMLElement): Node[];
-        /** Add basic Markdown rules into this InlineRenderer */
-        AddMarkdownRules(): InlineRenderer;
+        RenderNode(node: HTMLElement | DocumentFragment): void;
+        /**
+         * Extract tokens.
+         *
+         * @example
+         * ```
+         * var tokens = renderer.Parse(node); //where node.innerHTML == "Hello [<img src=...> \\]Welcome](xxx)"
+         * tokens[0] == {isToken: false, data: "Hello "}
+         * tokens[1] == {isToken: true,  data: "["}
+         * tokens[2] == {isToken: false, data: (ElementObject)}
+         * tokens[3] == {isToken: false, data: " \\]Welcome"}
+         * //...
+         * ```
+         */
+        parse(contentContainer: Element | DocumentFragment): IInlineToken[];
         /** Add one extra replacing rule */
-        AddRule(rule: IInlineRule): void;
+        addRule(rule: IInlineRule): void;
     }
 }
 declare namespace MarkdownIME.Renderer {
@@ -327,27 +275,87 @@ declare namespace MarkdownIME.Renderer {
         AddMarkdownRules(): BlockRenderer;
     }
 }
+declare namespace MarkdownIME.Renderer {
+    abstract class InlineBracketRuleBase implements IInlineTokenRule {
+        name: string;
+        tokens: string[];
+        abstract isLeftBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+        abstract isRightBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+        abstract ProcWrappedContent(proc: InlineRenderProcess, i1: number, i2: number): any;
+        Proc(proc: InlineRenderProcess): boolean;
+    }
+}
+declare namespace MarkdownIME.Renderer {
+    module Markdown {
+        /** the name list of built-in Markdown inline rules */
+        var InlineRules: string[];
+        /** basic support of **Bold** and **Emphasis** */
+        class Emphasis extends InlineBracketRuleBase {
+            name: string;
+            tokens: string[];
+            tagNameEmphasis: string;
+            tagNameStrong: string;
+            isLeftBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            isRightBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            ProcWrappedContent(proc: InlineRenderProcess, i1: number, i2: number): void;
+        }
+        /** basic support of ~~StrikeThrough~~ */
+        class StrikeThrough extends InlineBracketRuleBase {
+            name: string;
+            tokens: string[];
+            tagName: string;
+            isLeftBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            isRightBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            ProcWrappedContent(proc: InlineRenderProcess, i1: number, i2: number): void;
+        }
+        /** link and image with `[]`
+         *
+         * Notice: the `src` OR `href` is not implemented here.
+         */
+        class LinkAndImage extends InlineBracketRuleBase {
+            name: string;
+            tokens: string[];
+            isLeftBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            isRightBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+            ProcWrappedContent(proc: InlineRenderProcess, i1: number, i2: number): void;
+        }
+        class LinkAndImageData implements IInlineTokenRule {
+            name: string;
+            tokens: string[];
+            Proc(proc: InlineRenderProcess): boolean;
+        }
+        class InlineCode implements IInlineTokenRule {
+            name: string;
+            tokens: string[];
+            Proc(proc: InlineRenderProcess): boolean;
+        }
+    }
+}
 declare var twemoji: {
     parse(text: string, ...args: any[]): string;
 };
 declare namespace MarkdownIME.Addon {
+    type InlineRenderProcess = MarkdownIME.Renderer.InlineRenderProcess;
+    type IInlineToken = MarkdownIME.Renderer.IInlineToken;
     /**
      * EmojiAddon is an add-on for InlineRenderer, translating `8-)` into ![😎](https://twemoji.maxcdn.com/36x36/1f60e.png)
+     *
      * Part of the code comes from `markdown-it/markdown-it-emoji`
      *
      * @see https://github.com/markdown-it/markdown-it-emoji/
      */
-    class EmojiAddon implements MarkdownIME.Renderer.IInlineRule {
+    class EmojiAddon extends MarkdownIME.Renderer.InlineBracketRuleBase {
         name: string;
+        tokens: string[];
         use_shortcuts: boolean;
         /** use twemoji to get `img` tags if possible. if it bothers, disable it. */
         use_twemoji: boolean;
         twemoji_config: {};
-        render(tree: DomChaos): void;
-        unrender(tree: DomChaos): void;
-        full_syntax: RegExp;
-        /** magic1 translates `:name:` into proper emoji char */
-        magic1(fulltext: string, name: string): string;
+        constructor();
+        isLeftBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+        isRightBracket(proc: InlineRenderProcess, token: IInlineToken, tokenIndex?: number): boolean;
+        ProcWrappedContent(proc: InlineRenderProcess, i1: number, i2: number): boolean;
+        afterProc(proc: InlineRenderProcess): void;
         /** shortcuts RegExp cache. Order: [shortest, ..., longest] */
         shortcuts_cache: {
             regexp: RegExp;
@@ -357,22 +365,18 @@ declare namespace MarkdownIME.Addon {
         /** update the shortcuts RegExp cache. Run this after modifing the shortcuts! */
         UpdateShortcutCache(): void;
         chars: {
-            "smile": string;
-            "smiley": string;
-            "grinning": string;
+            "smile": string[];
+            "happy": string;
+            "grin": string[];
             "blush": string;
             "wink": string;
+            "sad": string[];
+            "+1": string;
+            "-1": string;
             "heart_eyes": string;
-            "kissing_heart": string;
-            "kissing_closed_eyes": string;
-            "kissing": string;
-            "kissing_smiling_eyes": string;
-            "stuck_out_tongue_winking_eye": string;
-            "stuck_out_tongue_closed_eyes": string;
-            "stuck_out_tongue": string;
+            "kiss": string[];
+            "tongue": string;
             "flushed": string;
-            "grin": string;
-            "pensive": string;
             "relieved": string;
             "unamused": string;
             "disappointed": string;
@@ -381,58 +385,48 @@ declare namespace MarkdownIME.Addon {
             "joy": string;
             "sob": string;
             "sleepy": string;
-            "disappointed_relieved": string;
             "cold_sweat": string;
-            "sweat_smile": string;
             "sweat": string;
             "weary": string;
-            "tired_face": string;
-            "fearful": string;
+            "tired": string;
+            "fearful": string[];
             "scream": string;
             "angry": string;
             "rage": string;
             "confounded": string;
-            "laughing": string;
-            "satisfied": string;
+            "laugh": string[];
             "yum": string;
             "mask": string;
-            "sunglasses": string;
+            "sunglasses": string[];
             "sleeping": string;
-            "dizzy_face": string;
+            "dizzy": string;
             "astonished": string;
-            "worried": string;
-            "frowning": string;
+            "worry": string[];
+            "frown": string[];
             "anguished": string;
             "imp": string;
             "smiling_imp": string;
             "open_mouth": string;
-            "neutral_face": string;
+            "neutral": string;
             "confused": string;
             "hushed": string;
             "no_mouth": string;
-            "innocent": string;
+            "innocent": string[];
             "smirk": string;
             "expressionless": string;
-            "smiley_cat": string;
-            "smile_cat": string;
-            "heart_eyes_cat": string;
-            "kissing_cat": string;
-            "smirk_cat": string;
-            "scream_cat": string;
-            "crying_cat_face": string;
             "joy_cat": string;
             "pouting_cat": string;
-            "heart": string;
+            "heart": string[];
             "broken_heart": string;
             "two_hearts": string;
-            "sparkles": string;
+            "sparkles": string[];
             "fist": string;
             "hand": string;
             "raised_hand": string;
             "cat": string;
             "mouse": string;
             "cow": string;
-            "monkey_face": string;
+            "monkey": string;
             "star": string;
             "zap": string;
             "umbrella": string;
@@ -443,9 +437,6 @@ declare namespace MarkdownIME.Addon {
             "coffee": string;
             "anchor": string;
             "wheelchair": string;
-            "negative_squared_cross_mark": string;
-            "white_check_mark": string;
-            "loop": string;
             "aries": string;
             "taurus": string;
             "gemini": string;
@@ -458,22 +449,7 @@ declare namespace MarkdownIME.Addon {
             "capricorn": string;
             "aquarius": string;
             "pisces": string;
-            "x": string;
-            "exclamation": string;
-            "heavy_exclamation_mark": string;
-            "question": string;
-            "grey_exclamation": string;
-            "grey_question": string;
-            "heavy_plus_sign": string;
-            "heavy_minus_sign": string;
-            "heavy_division_sign": string;
-            "curly_loop": string;
-            "black_medium_small_square": string;
-            "white_medium_small_square": string;
-            "black_circle": string;
-            "white_circle": string;
-            "white_large_square": string;
-            "black_large_square": string;
+            "loop": string;
         };
         /** shortcuts. use RegExp instead of string would be better. */
         shortcuts: {
@@ -490,17 +466,16 @@ declare namespace MarkdownIME.Addon {
             joy: string[];
             kissing: string[];
             laughing: string[];
-            neutral_face: string[];
+            neutral: string[];
             open_mouth: string[];
             rage: string[];
             smile: string[];
             smiley: string[];
             smiling_imp: string[];
             sob: string[];
-            stuck_out_tongue: string[];
+            tongue: string[];
             sunglasses: string[];
             sweat: string[];
-            sweat_smile: string[];
             unamused: string[];
             wink: string[];
         };
@@ -520,10 +495,11 @@ declare namespace MarkdownIME {
         wrapper?: string;
         /** the outterHTML of a `<br>` placeholder. on Chrome/Firefox, an empty line must has at least one `<br>` */
         emptyBreak?: string;
-        /** use proto chain to apply default config. */
-        __proto__?: EditorConfig;
-        /** a tester for IE9, DO NOT SET TO TRUE */
-        __proto_check__?: boolean;
+    }
+    interface IGetCurrentLineResult {
+        line: Element;
+        parent_tree: Element[];
+        half_break: boolean;
     }
     class Editor {
         static globalConfig: EditorConfig;
@@ -543,11 +519,7 @@ declare namespace MarkdownIME {
          *
          * @note when half_break is true, other things might not be correct.
          */
-        GetCurrentLine(range: Range): {
-            line: Element;
-            parent_tree: Element[];
-            half_break: boolean;
-        };
+        GetCurrentLine(range: Range): IGetCurrentLineResult;
         /**
          * Process the line on the cursor.
          * call this from the event handler.
@@ -568,6 +540,20 @@ declare namespace MarkdownIME {
          * Handler for keydown
          */
         keydownHandler(ev: KeyboardEvent): void;
+        /**
+         * execute the instant rendering.
+         *
+         * this will not work inside a `<pre>` element.
+         *
+         * @param {Range} range where the caret(cursor) is. You can get it from `window.getSelection().getRangeAt(0)`
+         * @return {boolean} successful or not.
+         */
+        instantRender(range: Range): boolean;
+        /**
+         * keyupHandler
+         *
+         * 1. call `instantRender` when space key is released.
+         */
         keyupHandler(ev: KeyboardEvent): void;
         /**
          * Generate Empty Line
@@ -627,18 +613,17 @@ declare namespace MarkdownIME.Addon {
      * This addon MUST have a higher priority, than other inline elements like emphasising.
      *
      * To enable, execute this:
-     *  `MarkdownIME.Renderer.inlineRenderer.rules.unshift(new MarkdownIME.Addon.MathAddon())`
+     *  `MarkdownIME.Renderer.inlineRenderer.addRule(new MarkdownIME.Addon.MathAddon())`
      *
      * Use CODECOGS API to generate the picture.
      * @see http://latex.codecogs.com/eqneditor/editor.php
      *
      * Originally planned to use http://www.mathjax.org/ , but failed due to its async proccessing.
      */
-    class MathAddon implements MarkdownIME.Renderer.IInlineRule {
+    class MathAddon implements MarkdownIME.Renderer.IInlineTokenRule {
         name: string;
         imgServer: string;
-        regex: RegExp;
-        render(tree: DomChaos): void;
-        unrender(tree: DomChaos): void;
+        tokens: string[];
+        Proc(proc: MarkdownIME.Renderer.InlineRenderProcess): boolean;
     }
 }
