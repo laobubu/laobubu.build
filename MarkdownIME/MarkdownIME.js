@@ -327,6 +327,7 @@ var MarkdownIME;
                     if (typeof func === 'function')
                         func.call(rule, _this);
                 });
+                this.mergeTextNode();
             };
             /** merge adjacent text nodes into one */
             InlineRenderProcess.prototype.mergeTextNode = function () {
@@ -1268,7 +1269,6 @@ var MarkdownIME;
         Addon.EmojiAddon = EmojiAddon;
     })(Addon = MarkdownIME.Addon || (MarkdownIME.Addon = {}));
 })(MarkdownIME || (MarkdownIME = {}));
-/// <reference path="Utils.ts" />
 /// <reference path="Renderer/InlineRenderer.ts" />
 /// <reference path="Renderer/BlockRenderer.ts" />
 /// <reference path="Renderer/Inline/MarkdownRules.ts" />
@@ -1278,26 +1278,19 @@ var MarkdownIME;
 (function (MarkdownIME) {
     var Renderer;
     (function (Renderer) {
-        var Pattern;
-        (function (Pattern) {
-            Pattern.codeblock = /^```\s*(\S*)\s*$/g;
-        })(Pattern || (Pattern = {}));
         Renderer.inlineRenderer = new Renderer.InlineRenderer();
         Renderer.blockRenderer = new Renderer.BlockRenderer();
+        Renderer.emojiRule = new MarkdownIME.Addon.EmojiAddon();
         Renderer.Markdown.InlineRules.forEach(function (RuleName) {
             var Rule = Renderer.Markdown[RuleName];
             Renderer.inlineRenderer.addRule(new Rule());
         });
-        Renderer.inlineRenderer.addRule(new MarkdownIME.Addon.EmojiAddon());
+        Renderer.inlineRenderer.addRule(Renderer.emojiRule);
         Renderer.blockRenderer.AddMarkdownRules();
         /**
          * Make one Block Node beautiful!
          */
         function Render(node) {
-            var html = MarkdownIME.Utils.trim(node.innerHTML);
-            var match_result;
-            var new_node;
-            console.log("Render", node, html);
             var elevateResult = Renderer.blockRenderer.Elevate(node);
             if (elevateResult) {
                 if (!elevateResult.containerType.isTypable)
@@ -1667,9 +1660,10 @@ var MarkdownIME;
          * this will not work inside a `<pre>` element.
          *
          * @param {Range} range where the caret(cursor) is. You can get it from `window.getSelection().getRangeAt(0)`
+         * @param {boolean} moveCursor true if you want to move the caret(cursor) after rendering.
          * @return {boolean} successful or not.
          */
-        Editor.prototype.instantRender = function (range) {
+        Editor.prototype.instantRender = function (range, moveCursor) {
             var element = range.startContainer.parentNode;
             var blockNode = element;
             while (!MarkdownIME.Utils.is_node_block(blockNode)) {
@@ -1687,16 +1681,21 @@ var MarkdownIME;
                     if (newBlock.textContent.length === 0) {
                         newBlock.innerHTML = this.config.emptyBreak;
                     }
-                    MarkdownIME.Utils.move_cursor_to_end(newBlock);
+                    moveCursor && MarkdownIME.Utils.move_cursor_to_end(newBlock);
                     return;
                 }
             }
             range.setStart(element, 0);
             var fragment = range.extractContents();
             MarkdownIME.Renderer.inlineRenderer.RenderNode(fragment);
+            var firstChild = element.firstChild;
+            if (firstChild.nodeType === Node.TEXT_NODE && firstChild.textContent === "") {
+                element.removeChild(firstChild);
+                firstChild = element.firstChild;
+            }
             var focusNode = fragment.lastChild;
-            element.insertBefore(fragment, element.firstChild);
-            MarkdownIME.Utils.move_cursor_to_end(focusNode);
+            element.insertBefore(fragment, firstChild);
+            moveCursor && MarkdownIME.Utils.move_cursor_to_end(focusNode);
         };
         /**
          * keyupHandler
@@ -1707,7 +1706,7 @@ var MarkdownIME;
             var keyCode = ev.keyCode || ev.which;
             var range = this.selection.getRangeAt(0);
             if (keyCode === 32 && range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
-                this.instantRender(range);
+                this.instantRender(range, true);
             }
         };
         /**

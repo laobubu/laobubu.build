@@ -484,10 +484,11 @@ declare namespace MarkdownIME.Addon {
 declare namespace MarkdownIME.Renderer {
     var inlineRenderer: InlineRenderer;
     var blockRenderer: BlockRenderer;
+    var emojiRule: Addon.EmojiAddon;
     /**
      * Make one Block Node beautiful!
      */
-    function Render(node: HTMLElement): HTMLElement;
+    function Render(node: Element): Element;
 }
 declare namespace MarkdownIME {
     interface EditorConfig {
@@ -546,9 +547,10 @@ declare namespace MarkdownIME {
          * this will not work inside a `<pre>` element.
          *
          * @param {Range} range where the caret(cursor) is. You can get it from `window.getSelection().getRangeAt(0)`
+         * @param {boolean} moveCursor true if you want to move the caret(cursor) after rendering.
          * @return {boolean} successful or not.
          */
-        instantRender(range: Range): boolean;
+        instantRender(range: Range, moveCursor?: boolean): boolean;
         /**
          * keyupHandler
          *
