@@ -1182,18 +1182,13 @@ var MarkdownIME;
                     unamused: [':s', ':-S', ':z', ':-Z', ':$', ':-$'],
                     wink: [';)', ';-)']
                 };
-                var _loop_1 = function() {
-                    ck = this_1.chars[key];
-                    if (ck && ck['length'] && ck['length'] > 1 && ck[1]['length'] > 1) {
-                        var ch_1 = ck.shift();
-                        ck.push(key);
-                        ck.forEach(function (key) { return _this.chars[key] = ch_1; });
-                    }
-                };
-                var this_1 = this;
-                var ck;
                 for (var key in this.chars) {
-                    _loop_1();
+                    var ck = this.chars[key];
+                    if (ck && ck['length'] && ck['length'] > 1 && ck[1]['length'] > 1) {
+                        var ch = ck.shift();
+                        ck.push(key);
+                        ck.forEach(function (key) { return _this.chars[key] = ch; });
+                    }
                 }
             }
             EmojiAddon.prototype.isLeftBracket = function (proc, token, tokenIndex) {
