@@ -1666,6 +1666,8 @@ var MarkdownIME;
             }
             if (blockNode.nodeName === "PRE")
                 return false;
+            if (element.nodeName === "CODE")
+                return false;
             if (element === blockNode &&
                 range.startContainer.nodeType === Node.TEXT_NODE &&
                 range.startContainer === blockNode.firstChild) {
