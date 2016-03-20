@@ -510,6 +510,7 @@ declare namespace MarkdownIME {
         window: Window;
         selection: Selection;
         isTinyMCE: boolean;
+        isIE: boolean;
         constructor(editor: Element, config?: EditorConfig);
         /**
          * Init MarkdownIME on this editor.
@@ -557,6 +558,10 @@ declare namespace MarkdownIME {
          * 1. call `instantRender` when space key is released.
          */
         keyupHandler(ev: KeyboardEvent): void;
+        /**
+         * inputHandler
+         */
+        inputHandler(ev: any): void;
         /**
          * Generate Empty Line
          */

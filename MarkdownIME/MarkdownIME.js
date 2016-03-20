@@ -59,7 +59,7 @@ var MarkdownIME;
             range.collapse(focusNode.nodeName === "BR");
             selection.removeAllRanges();
             selection.addRange(range);
-            focusNode.parentElement.scrollIntoViewIfNeeded(true);
+            focusNode.parentElement && focusNode.parentElement.scrollIntoViewIfNeeded(true);
         }
         Utils.move_cursor_to_end = move_cursor_to_end;
         /**
@@ -588,7 +588,7 @@ var MarkdownIME;
                 }
                 OL.prototype.Elevate = function (node) {
                     var rtn = _super.prototype.Elevate.call(this, node);
-                    if (rtn) {
+                    if (rtn && rtn.parent.childElementCount === 1) {
                         rtn.parent.setAttribute("start", rtn.feature[1]);
                     }
                     return rtn;
@@ -1311,6 +1311,7 @@ var MarkdownIME;
             this.window = editor.ownerDocument.defaultView;
             this.selection = this.window.getSelection();
             this.isTinyMCE = /tinymce/i.test(editor.id);
+            this.isIE = /MSIE|Trident\//.test(this.window.navigator.userAgent);
             this.config = config || {};
             for (var key in Editor.globalConfig) {
                 this.config.hasOwnProperty(key) || (this.config[key] = Editor.globalConfig[key]);
@@ -1327,6 +1328,7 @@ var MarkdownIME;
                 return false;
             this.editor.addEventListener('keydown', this.keydownHandler.bind(this), false);
             this.editor.addEventListener('keyup', this.keyupHandler.bind(this), false);
+            this.editor.addEventListener('input', this.inputHandler.bind(this), false);
             this.editor.setAttribute('mdime-enhanced', 'true');
             return true;
         };
@@ -1664,6 +1666,8 @@ var MarkdownIME;
             while (!MarkdownIME.Utils.is_node_block(blockNode)) {
                 blockNode = blockNode.parentNode;
             }
+            if (blockNode === this.editor)
+                return false;
             if (blockNode.nodeName === "PRE")
                 return false;
             if (element.nodeName === "CODE")
@@ -1690,9 +1694,20 @@ var MarkdownIME;
                 element.removeChild(firstChild);
                 firstChild = element.firstChild;
             }
-            var focusNode = fragment.lastChild;
+            var lastNode = fragment.lastChild;
             element.insertBefore(fragment, firstChild);
-            moveCursor && MarkdownIME.Utils.move_cursor_to_end(focusNode);
+            if (moveCursor) {
+                if (lastNode.nodeType === Node.TEXT_NODE) {
+                    MarkdownIME.Utils.move_cursor_to_end(lastNode);
+                }
+                else {
+                    var range_1 = this.document.createRange();
+                    range_1.selectNode(lastNode);
+                    range_1.collapse(false);
+                    this.selection.removeAllRanges();
+                    this.selection.addRange(range_1);
+                }
+            }
         };
         /**
          * keyupHandler
@@ -1702,7 +1717,17 @@ var MarkdownIME;
         Editor.prototype.keyupHandler = function (ev) {
             var keyCode = ev.keyCode || ev.which;
             var range = this.selection.getRangeAt(0);
-            if (keyCode === 32 && range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+            if (this.isIE && keyCode === 32 && range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE) {
+                this.instantRender(range, true);
+            }
+        };
+        /**
+         * inputHandler
+         */
+        Editor.prototype.inputHandler = function (ev) {
+            var range = this.selection.getRangeAt(0);
+            console.log(ev, ev.data);
+            if (range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE && /\s$/.test(range.startContainer.textContent)) {
                 this.instantRender(range, true);
             }
         };
