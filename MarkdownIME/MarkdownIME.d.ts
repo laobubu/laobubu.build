@@ -175,6 +175,7 @@ declare namespace MarkdownIME.Renderer {
         parent: Element;
         child: Element;
         feature?: any;
+        containerType?: BlockRendererContainer;
     }
     class BlockRendererContainer {
         name: string;
@@ -258,11 +259,9 @@ declare namespace MarkdownIME.Renderer {
     class BlockRenderer {
         containers: BlockRendererContainer[];
         /** Elevate a node. Make sure the node is a block node. */
-        Elevate(node: Element): {
-            containerType: BlockRendererContainer;
-            parent: Element;
-            child: Element;
-        };
+        Elevate(node: Element): ElevateResult;
+        /** Elevate once. Not work with `> ## this situation` */
+        ElevateOnce(node: Element): ElevateResult;
         /**
          * Get suggested nodeName of a new line inside a container.
          * @return null if no suggestion.

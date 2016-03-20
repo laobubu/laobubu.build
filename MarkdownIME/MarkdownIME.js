@@ -727,6 +727,17 @@ var MarkdownIME;
             }
             /** Elevate a node. Make sure the node is a block node. */
             BlockRenderer.prototype.Elevate = function (node) {
+                var finalResult = null;
+                var elevateOn = node;
+                var newestResult;
+                while (newestResult = this.ElevateOnce(elevateOn)) {
+                    elevateOn = newestResult.child;
+                    finalResult = newestResult;
+                }
+                return finalResult;
+            };
+            /** Elevate once. Not work with `> ## this situation` */
+            BlockRenderer.prototype.ElevateOnce = function (node) {
                 for (var i = 0; i < this.containers.length; i++) {
                     var container = this.containers[i];
                     var rtn = container.Elevate(node);
