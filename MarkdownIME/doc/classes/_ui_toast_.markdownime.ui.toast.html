@@ -57,16 +57,16 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="../modules/_ui_.html">&quot;UI&quot;</a>
+					<a href="../modules/_ui_toast_.html">&quot;UI/Toast&quot;</a>
 				</li>
 				<li>
-					<a href="../modules/_ui_.markdownime.html">MarkdownIME</a>
+					<a href="../modules/_ui_toast_.markdownime.html">MarkdownIME</a>
 				</li>
 				<li>
-					<a href="../modules/_ui_.markdownime.ui.html">UI</a>
+					<a href="../modules/_ui_toast_.markdownime.ui.html">UI</a>
 				</li>
 				<li>
-					<a href="_ui_.markdownime.ui.toast.html">Toast</a>
+					<a href="_ui_toast_.markdownime.ui.toast.html">Toast</a>
 				</li>
 			</ul>
 			<h1>Class Toast</h1>
@@ -76,6 +76,14 @@
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-comment">
+				<div class="tsd-comment tsd-typography">
+					<div class="lead">
+						<p>Tooltip Box, or a Toast on Android.</p>
+					</div>
+					<p>Providing a static method <code>showToast(text, coveron[, timeout])</code>, or you can construct one and control its visibility.</p>
+				</div>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -91,26 +99,26 @@
 						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#disappearing" class="tsd-kind-icon">disappearing</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#element" class="tsd-kind-icon">element</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#style" class="tsd-kind-icon">style</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#timeout" class="tsd-kind-icon">timeout</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_ui_.markdownime.ui.toast.html#long" class="tsd-kind-icon">LONG</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_ui_.markdownime.ui.toast.html#short" class="tsd-kind-icon">SHORT</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#document" class="tsd-kind-icon">document</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#element" class="tsd-kind-icon">element</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#status" class="tsd-kind-icon">status</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_ui_toast_.markdownime.ui.toast.html#long" class="tsd-kind-icon">LONG</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_ui_toast_.markdownime.ui.toast.html#short" class="tsd-kind-icon">SHORT</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><a href="_ui_toast_.markdownime.ui.toast.html#style" class="tsd-kind-icon">style</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#dismiss" class="tsd-kind-icon">dismiss</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_ui_.markdownime.ui.toast.html#show" class="tsd-kind-icon">show</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_ui_.markdownime.ui.toast.html#maketoast" class="tsd-kind-icon">make<wbr>Toast</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#dismiss" class="tsd-kind-icon">dismiss</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="_ui_toast_.markdownime.ui.toast.html#show" class="tsd-kind-icon">show</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-static"><a href="_ui_toast_.markdownime.ui.toast.html#showtoast" class="tsd-kind-icon">show<wbr>Toast</a></li>
 							</ul>
 						</section>
 					</div>
@@ -122,25 +130,25 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>Toast<span class="tsd-signature-symbol">(</span>element<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">HTMLDivElement</span>, timeout<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_ui_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>Toast<span class="tsd-signature-symbol">(</span>document<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Document</span>, text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_ui_toast_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L23">UI.ts:23</a></li>
+									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L33">UI/Toast.ts:33</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>element: <span class="tsd-signature-type">HTMLDivElement</span></h5>
+									<h5>document: <span class="tsd-signature-type">Document</span></h5>
 								</li>
 								<li>
-									<h5>timeout: <span class="tsd-signature-type">number</span></h5>
+									<h5>text: <span class="tsd-signature-type">string</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_ui_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_ui_toast_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -148,12 +156,12 @@
 			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="disappearing" class="tsd-anchor"></a>
-					<h3>disappearing</h3>
-					<div class="tsd-signature tsd-kind-icon">disappearing<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<a name="document" class="tsd-anchor"></a>
+					<h3>document</h3>
+					<div class="tsd-signature tsd-kind-icon">document<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Document</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L8">UI.ts:8</a></li>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L31">UI/Toast.ts:31</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -163,27 +171,17 @@
 					<div class="tsd-signature tsd-kind-icon">element<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">HTMLDivElement</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L9">UI.ts:9</a></li>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L32">UI/Toast.ts:32</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="style" class="tsd-anchor"></a>
-					<h3>style</h3>
-					<div class="tsd-signature tsd-kind-icon">style<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<a name="status" class="tsd-anchor"></a>
+					<h3>status</h3>
+					<div class="tsd-signature tsd-kind-icon">status<span class="tsd-signature-symbol">:</span> <a href="../enums/_ui_toast_.markdownime.ui.toaststatus.html" class="tsd-signature-type">ToastStatus</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L11">UI.ts:11</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
-					<a name="timeout" class="tsd-anchor"></a>
-					<h3>timeout</h3>
-					<div class="tsd-signature tsd-kind-icon">timeout<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L10">UI.ts:10</a></li>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L33">UI/Toast.ts:33</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -193,7 +191,7 @@
 					<div class="tsd-signature tsd-kind-icon">LONG<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L6">UI.ts:6</a></li>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L15">UI/Toast.ts:15</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -203,7 +201,17 @@
 					<div class="tsd-signature tsd-kind-icon">SHORT<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L5">UI.ts:5</a></li>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L14">UI/Toast.ts:14</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-static">
+					<a name="style" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> style</h3>
+					<div class="tsd-signature tsd-kind-icon">style<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L17">UI/Toast.ts:17</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -220,7 +228,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L40">UI.ts:40</a></li>
+									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L62">UI/Toast.ts:62</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -231,32 +239,49 @@
 					<a name="show" class="tsd-anchor"></a>
 					<h3>show</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
-						<li class="tsd-signature tsd-kind-icon">show<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">show<span class="tsd-signature-symbol">(</span>x<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, y<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L30">UI.ts:30</a></li>
+									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L45">UI/Toast.ts:45</a></li>
 								</ul>
 							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>x: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5>y: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">number</span></h5>
+								</li>
+							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
 						</li>
 					</ul>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-static">
-					<a name="maketoast" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagStatic">Static</span> make<wbr>Toast</h3>
+					<a name="showtoast" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagStatic">Static</span> show<wbr>Toast</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-static">
-						<li class="tsd-signature tsd-kind-icon">make<wbr>Toast<span class="tsd-signature-symbol">(</span>text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, coveron<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">HTMLElement</span>, timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_ui_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></li>
+						<li class="tsd-signature tsd-kind-icon">show<wbr>Toast<span class="tsd-signature-symbol">(</span>text<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, coveron<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">HTMLElement</span>, timeout<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="_ui_toast_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI.ts#L49">UI.ts:49</a></li>
+									<li>Defined in <a href="https://github.com/laobubu/MarkdownIME/blob/HEAD/src/UI/Toast.ts#L75">UI/Toast.ts:75</a></li>
 								</ul>
 							</aside>
+							<div class="tsd-comment tsd-typography">
+								<div class="lead">
+									<p>A Quick way to show a temporary Toast over an Element.</p>
+								</div>
+							</div>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
@@ -266,10 +291,10 @@
 									<h5>coveron: <span class="tsd-signature-type">HTMLElement</span></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> timeout: <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;0</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> timeout: <span class="tsd-signature-type">number</span></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="_ui_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></h4>
+							<h4 class="tsd-returns-title">Returns <a href="_ui_toast_.markdownime.ui.toast.html" class="tsd-signature-type">Toast</a></h4>
 						</li>
 					</ul>
 				</section>
@@ -308,14 +333,17 @@
 					<li class=" tsd-kind-external-module">
 						<a href="../modules/_renderer_inlinerenderer_.html">"<wbr>Renderer/<wbr>Inline<wbr>Renderer"</a>
 					</li>
-					<li class="current tsd-kind-external-module">
+					<li class=" tsd-kind-external-module">
 						<a href="../modules/_ui_.html">"UI"</a>
+					</li>
+					<li class="current tsd-kind-external-module">
+						<a href="../modules/_ui_toast_.html">"UI/<wbr>Toast"</a>
 						<ul>
 							<li class="current tsd-kind-module tsd-parent-kind-external-module tsd-is-not-exported">
-								<a href="../modules/_ui_.markdownime.html">MarkdownIME</a>
+								<a href="../modules/_ui_toast_.markdownime.html">MarkdownIME</a>
 								<ul>
 									<li class="current tsd-kind-module tsd-parent-kind-module">
-										<a href="../modules/_ui_.markdownime.ui.html">UI</a>
+										<a href="../modules/_ui_toast_.markdownime.ui.html">UI</a>
 									</li>
 								</ul>
 							</li>
@@ -328,40 +356,43 @@
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
+					<li class=" tsd-kind-enum tsd-parent-kind-module">
+						<a href="../enums/_ui_toast_.markdownime.ui.toaststatus.html" class="tsd-kind-icon">Toast<wbr>Status</a>
+					</li>
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-class tsd-parent-kind-module">
-						<a href="_ui_.markdownime.ui.toast.html" class="tsd-kind-icon">Toast</a>
+						<a href="_ui_toast_.markdownime.ui.toast.html" class="tsd-kind-icon">Toast</a>
 						<ul>
 							<li class=" tsd-kind-constructor tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#constructor" class="tsd-kind-icon">constructor</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#disappearing" class="tsd-kind-icon">disappearing</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#document" class="tsd-kind-icon">document</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#element" class="tsd-kind-icon">element</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#element" class="tsd-kind-icon">element</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#style" class="tsd-kind-icon">style</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#timeout" class="tsd-kind-icon">timeout</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#status" class="tsd-kind-icon">status</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
-								<a href="_ui_.markdownime.ui.toast.html#long" class="tsd-kind-icon">LONG</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#long" class="tsd-kind-icon">LONG</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
-								<a href="_ui_.markdownime.ui.toast.html#short" class="tsd-kind-icon">SHORT</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#short" class="tsd-kind-icon">SHORT</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static">
+								<a href="_ui_toast_.markdownime.ui.toast.html#style" class="tsd-kind-icon">style</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#dismiss" class="tsd-kind-icon">dismiss</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#dismiss" class="tsd-kind-icon">dismiss</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class">
-								<a href="_ui_.markdownime.ui.toast.html#show" class="tsd-kind-icon">show</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#show" class="tsd-kind-icon">show</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-static">
-								<a href="_ui_.markdownime.ui.toast.html#maketoast" class="tsd-kind-icon">make<wbr>Toast</a>
+								<a href="_ui_toast_.markdownime.ui.toast.html#showtoast" class="tsd-kind-icon">show<wbr>Toast</a>
 							</li>
 						</ul>
 					</li>

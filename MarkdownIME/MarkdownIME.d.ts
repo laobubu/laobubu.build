@@ -502,7 +502,7 @@ declare namespace MarkdownIME {
         half_break: boolean;
     }
     class Editor {
-        static globalConfig: EditorConfig;
+        static defaultConfig: EditorConfig;
         config: EditorConfig;
         editor: Element;
         document: Document;
@@ -528,15 +528,17 @@ declare namespace MarkdownIME {
         ProcessCurrentLine(ev: KeyboardEvent): void;
         /**
          * Create new table row.
-         * @argument {Node} refer - current cell
-         * @return   {Node} the corresponding new cell element
+         * @argument {Element} refer - current cell
+         * @returns  {Element} the corresponding new cell element
          */
-        CreateNewCell(refer: Node): Element;
+        CreateNewCell(refer: Element): Element;
         /**
          * Create new line after one node and move cursor to it.
-         * return false if not successful.
+         *
+         * @param   {Element} node - current line element.
+         * @returns {boolean} successful or not.
          */
-        CreateNewLine(node: Node): boolean;
+        CreateNewLine(node: Element): boolean;
         /**
          * Handler for keydown
          */
@@ -565,20 +567,39 @@ declare namespace MarkdownIME {
          * Generate Empty Line
          */
         GenerateEmptyLine(tagName?: string): HTMLElement;
+        /**
+         * KeyDown Event Handler for Tables
+         *
+         * Move cursor using TAB, Shift+TAB, UP and DOWN
+         *
+         * @returns {boolean} handled or not.
+         */
+        keydownHandler_Table(ev: KeyboardEvent): boolean;
     }
 }
 declare namespace MarkdownIME.UI {
+    enum ToastStatus {
+        Hidden = 0,
+        Shown = 1,
+        Hiding = 2,
+    }
+    /**
+     * Tooltip Box, or a Toast on Android.
+     *
+     * Providing a static method `showToast(text, coveron[, timeout])`, or you can construct one and control its visibility.
+     */
     class Toast {
         static SHORT: number;
         static LONG: number;
-        disappearing: boolean;
+        static style: string;
+        document: Document;
         element: HTMLDivElement;
-        timeout: number;
-        style: string;
-        constructor(element: HTMLDivElement, timeout: number);
-        show(): void;
+        status: ToastStatus;
+        constructor(document: Document, text: string);
+        show(x: string, y: string, timeout?: number): void;
         dismiss(): void;
-        static makeToast(text: string, coveron: HTMLElement, timeout?: number): Toast;
+        /** A Quick way to show a temporary Toast over an Element. */
+        static showToast(text: string, coveron: HTMLElement, timeout?: number): Toast;
     }
 }
 /*!@preserve

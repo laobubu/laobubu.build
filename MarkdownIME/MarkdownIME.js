@@ -1324,8 +1324,8 @@ var MarkdownIME;
             this.isTinyMCE = /tinymce/i.test(editor.id);
             this.isIE = /MSIE|Trident\//.test(this.window.navigator.userAgent);
             this.config = config || {};
-            for (var key in Editor.globalConfig) {
-                this.config.hasOwnProperty(key) || (this.config[key] = Editor.globalConfig[key]);
+            for (var key in Editor.defaultConfig) {
+                this.config.hasOwnProperty(key) || (this.config[key] = Editor.defaultConfig[key]);
             }
         }
         /**
@@ -1547,8 +1547,8 @@ var MarkdownIME;
         };
         /**
          * Create new table row.
-         * @argument {Node} refer - current cell
-         * @return   {Node} the corresponding new cell element
+         * @argument {Element} refer - current cell
+         * @returns  {Element} the corresponding new cell element
          */
         Editor.prototype.CreateNewCell = function (refer) {
             if (!refer || !MarkdownIME.Utils.Pattern.NodeName.cell.test(refer.nodeName))
@@ -1572,15 +1572,17 @@ var MarkdownIME;
         };
         /**
          * Create new line after one node and move cursor to it.
-         * return false if not successful.
+         *
+         * @param   {Element} node - current line element.
+         * @returns {boolean} successful or not.
          */
         Editor.prototype.CreateNewLine = function (node) {
-            var _dummynode;
+            var newElement;
             var re = MarkdownIME.Utils.Pattern.NodeName;
             //create table row
             if (re.cell.test(node.nodeName)) {
-                _dummynode = this.CreateNewCell(node);
-                MarkdownIME.Utils.move_cursor_to_end(_dummynode);
+                newElement = this.CreateNewCell(node);
+                MarkdownIME.Utils.move_cursor_to_end(newElement);
                 return true;
             }
             //using browser way to create new line will get dirty format
@@ -1590,9 +1592,9 @@ var MarkdownIME;
                 re.li.test(node.nodeName) ||
                 re.hr.test(node.nodeName)) {
                 var tagName = re.li.test(node.nodeName) ? "li" : null;
-                _dummynode = this.GenerateEmptyLine(tagName);
-                node.parentNode.insertBefore(_dummynode, node.nextSibling);
-                MarkdownIME.Utils.move_cursor_to_end(_dummynode);
+                newElement = this.GenerateEmptyLine(tagName);
+                node.parentNode.insertBefore(newElement, node.nextSibling);
+                MarkdownIME.Utils.move_cursor_to_end(newElement);
                 return true;
             }
             return false;
@@ -1610,57 +1612,7 @@ var MarkdownIME;
                 this.ProcessCurrentLine(ev);
                 return;
             }
-            else if ((keyCode === 9) || (keyCode >= 37 && keyCode <= 40)) {
-                var handled = false;
-                var parent_tree = MarkdownIME.Utils.build_parent_list(range.startContainer, this.editor);
-                parent_tree.unshift(range.startContainer); // for empty cells
-                var parent_tree_block = parent_tree.filter(MarkdownIME.Utils.is_node_block);
-                console.log(parent_tree);
-                if (MarkdownIME.Utils.Pattern.NodeName.cell.test(parent_tree_block[0].nodeName)) {
-                    //swift move between cells
-                    var td = parent_tree_block[0];
-                    var tr = td.parentElement;
-                    var table = tr.parentElement.parentElement;
-                    var focus_1 = null;
-                    var td_index = 0;
-                    while (td_index < tr.childElementCount && !tr.children[td_index].isSameNode(td))
-                        td_index++;
-                    if (td_index < tr.childElementCount) {
-                        switch (keyCode) {
-                            case 9:
-                                if (noAdditionalKeys)
-                                    focus_1 = td.nextElementSibling ||
-                                        (tr.nextElementSibling && tr.nextElementSibling.firstElementChild) ||
-                                        (this.CreateNewCell(tr.firstElementChild));
-                                else if (ev.shiftKey)
-                                    focus_1 = td.previousElementSibling ||
-                                        (tr.previousElementSibling && tr.previousElementSibling.lastElementChild) ||
-                                        table.previousElementSibling;
-                                break;
-                            case 38:
-                                if (noAdditionalKeys)
-                                    focus_1 = (tr.previousElementSibling && tr.previousElementSibling.children[td_index]) ||
-                                        table.previousElementSibling;
-                                break;
-                            case 40:
-                                if (noAdditionalKeys)
-                                    focus_1 = (tr.nextElementSibling && tr.nextElementSibling.children[td_index]) ||
-                                        table.nextElementSibling;
-                                break;
-                        }
-                        if (focus_1 !== null) {
-                            range.selectNodeContents(focus_1.lastChild || focus_1);
-                            range.collapse(false);
-                            this.selection.removeAllRanges();
-                            this.selection.addRange(range);
-                            handled = true;
-                        }
-                    }
-                }
-                if (handled) {
-                    ev.preventDefault();
-                }
-            }
+            this.keydownHandler_Table(ev);
         };
         /**
          * execute the instant rendering.
@@ -1737,7 +1689,6 @@ var MarkdownIME;
          */
         Editor.prototype.inputHandler = function (ev) {
             var range = this.selection.getRangeAt(0);
-            console.log(ev, ev.data);
             if (range.collapsed && range.startContainer.nodeType === Node.TEXT_NODE && /\s$/.test(range.startContainer.textContent)) {
                 this.instantRender(range, true);
             }
@@ -1752,7 +1703,64 @@ var MarkdownIME;
             rtn.innerHTML = this.config.emptyBreak;
             return rtn;
         };
-        Editor.globalConfig = {
+        /**
+         * KeyDown Event Handler for Tables
+         *
+         * Move cursor using TAB, Shift+TAB, UP and DOWN
+         *
+         * @returns {boolean} handled or not.
+         */
+        Editor.prototype.keydownHandler_Table = function (ev) {
+            var keyCode = ev.keyCode || ev.which;
+            var noAdditionalKeys = !(ev.shiftKey || ev.ctrlKey || ev.altKey);
+            if ((keyCode !== 9) && (keyCode < 37 || keyCode > 40))
+                return false;
+            var range = this.selection.getRangeAt(0);
+            var parent_tree = MarkdownIME.Utils.build_parent_list(range.startContainer, this.editor);
+            parent_tree.unshift(range.startContainer); // for empty cells
+            var parent_tree_block = parent_tree.filter(MarkdownIME.Utils.is_node_block);
+            var td = parent_tree_block[0];
+            var tr = td.parentElement;
+            var table = tr.parentElement.parentElement;
+            if (!MarkdownIME.Utils.Pattern.NodeName.cell.test(td.nodeName))
+                return false;
+            var td_index = 0; // the index of current td
+            var td_count = tr.childElementCount;
+            while (td_index < td_count && tr.children[td_index] !== td)
+                td_index++;
+            if (td_index >= td_count)
+                return false; // not found the cell. awkward but shall not happen
+            var focus = null;
+            switch (keyCode) {
+                case 9:
+                    if (noAdditionalKeys)
+                        focus = td.nextElementSibling ||
+                            (tr.nextElementSibling && tr.nextElementSibling.firstElementChild) ||
+                            (this.CreateNewCell(tr.firstElementChild));
+                    else if (ev.shiftKey)
+                        focus = td.previousElementSibling ||
+                            (tr.previousElementSibling && tr.previousElementSibling.lastElementChild) ||
+                            table.previousElementSibling;
+                    break;
+                case 38:
+                    if (noAdditionalKeys)
+                        focus = (tr.previousElementSibling && tr.previousElementSibling.children[td_index]) ||
+                            table.previousElementSibling;
+                    break;
+                case 40:
+                    if (noAdditionalKeys)
+                        focus = (tr.nextElementSibling && tr.nextElementSibling.children[td_index]) ||
+                            table.nextElementSibling;
+                    break;
+            }
+            if (focus) {
+                MarkdownIME.Utils.move_cursor_to_end(focus);
+                ev.preventDefault();
+                return true;
+            }
+            return false;
+        };
+        Editor.defaultConfig = {
             wrapper: 'p',
             emptyBreak: /MSIE (9|10)\./.test(navigator.appVersion) ? '' : '<br data-mdime-bogus="true">'
         };
@@ -1760,57 +1768,75 @@ var MarkdownIME;
     }());
     MarkdownIME.Editor = Editor;
 })(MarkdownIME || (MarkdownIME = {}));
-/// <reference path="Utils.ts" />
 var MarkdownIME;
 (function (MarkdownIME) {
     var UI;
     (function (UI) {
+        (function (ToastStatus) {
+            ToastStatus[ToastStatus["Hidden"] = 0] = "Hidden";
+            ToastStatus[ToastStatus["Shown"] = 1] = "Shown";
+            ToastStatus[ToastStatus["Hiding"] = 2] = "Hiding";
+        })(UI.ToastStatus || (UI.ToastStatus = {}));
+        var ToastStatus = UI.ToastStatus;
+        ;
+        /**
+         * Tooltip Box, or a Toast on Android.
+         *
+         * Providing a static method `showToast(text, coveron[, timeout])`, or you can construct one and control its visibility.
+         */
         var Toast = (function () {
-            function Toast(element, timeout) {
-                this.disappearing = false;
-                this.timeout = 300;
-                this.style = "\nposition: absolute; \nfont-size: 10pt; \ncolor: #363; \nborder: 1px solid #363; \nbackground: #CFC; \npadding: 2pt 5pt; \nborder-radius: 0 0 5pt 0; \nz-index: 32760; \ntransition: .3s ease; \nopacity: 0; \n";
-                this.element = element;
-                this.timeout = timeout;
+            function Toast(document, text) {
+                this.status = ToastStatus.Hidden;
+                this.document = document;
+                var ele = document.createElement("div");
+                ele.setAttribute("style", Toast.style);
+                ele.textContent = text;
+                this.element = ele;
             }
-            Toast.prototype.show = function () {
-                requestAnimationFrame((function () {
-                    var dismiss = this.dismiss.bind(this);
-                    this.element.style.opacity = '1';
-                    this.element.addEventListener('mousemove', dismiss, false);
-                    if (this.timeout)
-                        setTimeout(dismiss, this.timeout);
-                }).bind(this));
+            Toast.prototype.show = function (x, y, timeout) {
+                var _this = this;
+                var ele = this.element;
+                var dismiss = this.dismiss.bind(this);
+                if (!ele.parentElement)
+                    this.document.body.appendChild(ele);
+                ele.style.left = x;
+                ele.style.top = y;
+                ele.addEventListener('mousemove', dismiss, false);
+                setTimeout(function () {
+                    _this.status = ToastStatus.Shown;
+                    ele.style.opacity = '1';
+                    if (timeout)
+                        setTimeout(dismiss, timeout);
+                }, 10);
             };
             Toast.prototype.dismiss = function () {
-                if (this.disappearing)
+                var _this = this;
+                if (this.status !== ToastStatus.Shown)
                     return;
-                this.disappearing = true;
+                this.status = ToastStatus.Hiding;
                 this.element.style.opacity = '0';
-                setTimeout((function () {
-                    this.element.parentNode.removeChild(this.element);
-                }).bind(this), 300);
+                setTimeout(function () {
+                    _this.element.parentNode.removeChild(_this.element);
+                    _this.status = ToastStatus.Hidden;
+                }, 300);
             };
-            Toast.makeToast = function (text, coveron, timeout) {
-                if (timeout === void 0) { timeout = 0; }
-                var document = coveron.ownerDocument || (coveron['createElement'] && coveron) || document;
-                var container = coveron.parentNode || (coveron['createElement'] && coveron['body']);
-                var toast_div = document.createElement("div");
-                var toast = new Toast(toast_div, timeout);
-                toast_div.setAttribute("style", toast.style);
-                toast_div.textContent = text;
-                toast_div.style.left = (coveron.offsetLeft || 0) + 'px';
-                toast_div.style.top = (coveron.offsetTop || 0) + 'px';
-                container.appendChild(toast_div);
+            /** A Quick way to show a temporary Toast over an Element. */
+            Toast.showToast = function (text, coveron, timeout) {
+                var document = coveron.ownerDocument;
+                var rect = coveron['getBoundingClientRect'] && coveron.getBoundingClientRect() || { left: 0, top: 0 };
+                var toast = new Toast(document, text);
+                toast.show(rect.left + 'px', rect.top + 'px', timeout || Toast.SHORT);
                 return toast;
             };
-            Toast.SHORT = 800;
-            Toast.LONG = 2000;
+            Toast.SHORT = 1500;
+            Toast.LONG = 3500;
+            Toast.style = "\nposition: absolute;\nfont-family: sans-serif;\npadding: 5px 10px;\nbackground: #e4F68F;\nfont-size: 10pt;\nline-height: 1.4em;\ncolor: #000;\nz-index: 32760;\ntransition: .2s ease;\nopacity: 0;\n";
             return Toast;
         }());
         UI.Toast = Toast;
     })(UI = MarkdownIME.UI || (MarkdownIME.UI = {}));
 })(MarkdownIME || (MarkdownIME = {}));
+/// <reference path="UI/Toast.ts" /> 
 /*!@preserve
     [MarkdownIME](https://github.com/laobubu/MarkdownIME)
     
@@ -1872,7 +1898,7 @@ var MarkdownIME;
         Enhance(Scan(window)).forEach(function (editor) {
             if (!editor)
                 return;
-            MarkdownIME.UI.Toast.makeToast("MarkdownIME Activated", editor.editor, MarkdownIME.UI.Toast.SHORT).show();
+            MarkdownIME.UI.Toast.showToast("MarkdownIME Activated", editor.editor, MarkdownIME.UI.Toast.SHORT);
         });
     }
     MarkdownIME.Bookmarklet = Bookmarklet;
