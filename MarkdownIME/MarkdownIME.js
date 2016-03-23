@@ -3,6 +3,11 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
+/**
+ * scrollIntoViewIfNeeded
+ *
+ * A Webkit stuff, but it works like a charm!
+ */
 if (!Element.prototype['scrollIntoViewIfNeeded']) {
     Element.prototype['scrollIntoViewIfNeeded'] = function () {
         var wh = window.innerHeight
@@ -12,6 +17,46 @@ if (!Element.prototype['scrollIntoViewIfNeeded']) {
             this.scrollIntoView();
     };
 }
+var MarkdownIME;
+(function (MarkdownIME) {
+    var Utils;
+    (function (Utils) {
+        /** convert some chars to HTML entities (`&` -> `&amp;`) */
+        function text2html(text) {
+            return text.replace(/(&|  |"|\<|\>)/g, function (name) { return _text2html_dict[name]; });
+        }
+        Utils.text2html = text2html;
+        var _text2html_dict = {
+            '&': '&amp;',
+            '  ': '&nbsp;',
+            '"': '&quot;',
+            '<': '&lt;',
+            '>': '&gt;'
+        };
+        /** add slash chars for a RegExp */
+        function text2regex(text) {
+            return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
+        }
+        Utils.text2regex = text2regex;
+        /** convert HTML entities to chars */
+        function html_entity_decode(html) {
+            return html.replace(/&(nbsp|amp|quot|lt|gt);/g, function (whole, name) { return _html_entity_decode_dict[name]; });
+        }
+        Utils.html_entity_decode = html_entity_decode;
+        var _html_entity_decode_dict = {
+            'nbsp': String.fromCharCode(160),
+            'amp': '&',
+            'quot': '"',
+            'lt': '<',
+            'gt': '>'
+        };
+        /** remove whitespace in the DOM text. works for textNode. */
+        function trim(str) {
+            return str.replace(/[\t\r\n ]+/, ' ').trim();
+        }
+        Utils.trim = trim;
+    })(Utils = MarkdownIME.Utils || (MarkdownIME.Utils = {}));
+})(MarkdownIME || (MarkdownIME = {}));
 var MarkdownIME;
 (function (MarkdownIME) {
     var Utils;
@@ -30,38 +75,6 @@ var MarkdownIME;
                 NodeName.autoClose = /^(area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)$/i;
             })(NodeName = Pattern.NodeName || (Pattern.NodeName = {}));
         })(Pattern = Utils.Pattern || (Utils.Pattern = {}));
-        /**
-         * Move the cursor to the end of one element.
-         */
-        function move_cursor_to_end(ele) {
-            var selection = ele.ownerDocument.defaultView.getSelection();
-            var range = ele.ownerDocument.createRange();
-            var focusNode = ele;
-            while (focusNode.nodeType === Node.ELEMENT_NODE) {
-                //find the last non-autoClose child element node, or child text node
-                var i = focusNode.childNodes.length;
-                while (--i !== -1) {
-                    var c = focusNode.childNodes[i];
-                    if ((c.nodeType === Node.TEXT_NODE) ||
-                        (c.nodeType === Node.ELEMENT_NODE)) {
-                        focusNode = c;
-                        break;
-                    }
-                }
-                if (i === -1) {
-                    break; //not found...
-                }
-            }
-            if (Pattern.NodeName.autoClose.test(focusNode.nodeName))
-                range.selectNode(focusNode);
-            else
-                range.selectNodeContents(focusNode);
-            range.collapse(focusNode.nodeName === "BR");
-            selection.removeAllRanges();
-            selection.addRange(range);
-            focusNode.parentElement && focusNode.parentElement.scrollIntoViewIfNeeded(true);
-        }
-        Utils.move_cursor_to_end = move_cursor_to_end;
         /**
          * Check if it's a BR or empty stuff.
          */
@@ -89,9 +102,10 @@ var MarkdownIME;
                 return false;
             if (node.nodeType != 1)
                 return false;
-            return (Pattern.NodeName.line.test(node.nodeName) ||
-                Pattern.NodeName.li.test(node.nodeName) ||
-                Pattern.NodeName.pre.test(node.nodeName));
+            var re = Pattern.NodeName;
+            return (re.line.test(node.nodeName) ||
+                re.li.test(node.nodeName) ||
+                re.pre.test(node.nodeName));
         }
         Utils.is_node_block = is_node_block;
         /**
@@ -174,37 +188,6 @@ var MarkdownIME;
             return rtn;
         }
         Utils.build_parent_list = build_parent_list;
-        /** convert some chars to HTML entities (`&` -> `&amp;`) */
-        function text2html(text) {
-            return text.replace(/&/g, '&amp;').replace(/  /g, ' &nbsp;').replace(/"/g, '&quot;').replace(/\</g, '&lt;').replace(/\>/g, '&gt;');
-        }
-        Utils.text2html = text2html;
-        /** add slash chars for a RegExp */
-        function text2regex(text) {
-            return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-        }
-        Utils.text2regex = text2regex;
-        /** convert HTML entities to chars */
-        function html_entity_decode(html) {
-            var dict = {
-                'nbsp': String.fromCharCode(160),
-                'amp': '&',
-                'quot': '"',
-                'lt': '<',
-                'gt': '>'
-            };
-            return html.replace(/&(nbsp|amp|quot|lt|gt);/g, function (whole, name) {
-                return dict[name];
-            });
-        }
-        Utils.html_entity_decode = html_entity_decode;
-        /**
-         * remove whitespace in the DOM text. works for textNode.
-         */
-        function trim(str) {
-            return str.replace(/^[\t\r\n ]+/, '').replace(/[\t\r\n ]+$/, '').replace(/[\t\r\n ]+/, ' ');
-        }
-        Utils.trim = trim;
         /**
          * help one element wear a wrapper
          */
@@ -246,6 +229,49 @@ var MarkdownIME;
         Utils.generateElementHTML = generateElementHTML;
     })(Utils = MarkdownIME.Utils || (MarkdownIME.Utils = {}));
 })(MarkdownIME || (MarkdownIME = {}));
+/// <reference path="Polyfill.ts" />
+/// <reference path="DOM.ts" />
+var MarkdownIME;
+(function (MarkdownIME) {
+    var Utils;
+    (function (Utils) {
+        /** Move the cursor to the end of one element. */
+        function move_cursor_to_end(ele) {
+            var document = ele.ownerDocument;
+            var selection = document.defaultView.getSelection();
+            var range = document.createRange();
+            var focusNode = ele;
+            while (focusNode.nodeType === Node.ELEMENT_NODE) {
+                //find the last non-autoClose child element node, or child text node
+                var i = focusNode.childNodes.length;
+                while (--i !== -1) {
+                    var c = focusNode.childNodes[i];
+                    if ((c.nodeType === Node.TEXT_NODE) ||
+                        (c.nodeType === Node.ELEMENT_NODE)) {
+                        focusNode = c;
+                        break;
+                    }
+                }
+                if (i === -1) {
+                    break; //not found...
+                }
+            }
+            if (Utils.Pattern.NodeName.autoClose.test(focusNode.nodeName))
+                range.selectNode(focusNode);
+            else
+                range.selectNodeContents(focusNode);
+            range.collapse(focusNode.nodeName === "BR");
+            selection.removeAllRanges();
+            selection.addRange(range);
+            focusNode.parentElement && focusNode.parentElement.scrollIntoViewIfNeeded(true);
+        }
+        Utils.move_cursor_to_end = move_cursor_to_end;
+    })(Utils = MarkdownIME.Utils || (MarkdownIME.Utils = {}));
+})(MarkdownIME || (MarkdownIME = {}));
+/// <reference path="Utils/Polyfill.ts" />
+/// <reference path="Utils/String.ts" />
+/// <reference path="Utils/Browser.ts" />
+/// <reference path="Utils/DOM.ts" />
 var MarkdownIME;
 (function (MarkdownIME) {
     var Renderer;
@@ -1791,20 +1817,25 @@ var MarkdownIME;
                 var ele = document.createElement("div");
                 ele.setAttribute("style", Toast.style);
                 ele.textContent = text;
+                ele.addEventListener('mousedown', this.dismiss.bind(this), false);
                 this.element = ele;
             }
-            Toast.prototype.show = function (x, y, timeout) {
+            Toast.prototype.setPosition = function (left, topOrBottom, isBottom) {
+                var ele = this.element;
+                ele.style.left = left + 'px';
+                ele.style.top = isBottom && 'initial' || (topOrBottom + 'px');
+                ele.style.bottom = isBottom && (topOrBottom + 'px') || 'initial';
+            };
+            Toast.prototype.show = function (timeout) {
                 var _this = this;
                 var ele = this.element;
                 var dismiss = this.dismiss.bind(this);
                 if (!ele.parentElement)
                     this.document.body.appendChild(ele);
-                ele.style.left = x;
-                ele.style.top = y;
-                ele.addEventListener('mousemove', dismiss, false);
                 setTimeout(function () {
                     _this.status = ToastStatus.Shown;
                     ele.style.opacity = '1';
+                    ele.style.marginTop = '0';
                     if (timeout)
                         setTimeout(dismiss, timeout);
                 }, 10);
@@ -1814,29 +1845,41 @@ var MarkdownIME;
                 if (this.status !== ToastStatus.Shown)
                     return;
                 this.status = ToastStatus.Hiding;
-                this.element.style.opacity = '0';
+                var ele = this.element;
+                ele.style.opacity = '0';
+                ele.style.marginTop = '-10px';
                 setTimeout(function () {
-                    _this.element.parentNode.removeChild(_this.element);
+                    ele.parentNode.removeChild(ele);
                     _this.status = ToastStatus.Hidden;
                 }, 300);
             };
-            /** A Quick way to show a temporary Toast over an Element. */
-            Toast.showToast = function (text, coveron, timeout) {
-                var document = coveron.ownerDocument;
-                var rect = coveron['getBoundingClientRect'] && coveron.getBoundingClientRect() || { left: 0, top: 0 };
+            /**
+             * A Quick way to show a temporary Toast over an Element.
+             *
+             * @param {string} text     message to be shown
+             * @param {Element} ref     the location reference
+             * @param {number} timeout  time in ms. 0 = do not dismiss.
+             * @param {boolean} cover   true = cover on the ref. false = shown on top of the ref.
+             */
+            Toast.showToast = function (text, ref, timeout, cover) {
+                var document = ref.ownerDocument;
+                var rect = ref['getBoundingClientRect'] && ref.getBoundingClientRect() || { left: 0, top: 0 };
                 var toast = new Toast(document, text);
-                toast.show(rect.left + 'px', rect.top + 'px', timeout || Toast.SHORT);
+                rect.left += document.body.scrollLeft;
+                rect.top += document.body.scrollTop;
+                toast.setPosition(rect.left, rect.top, !cover);
+                toast.show(timeout);
                 return toast;
             };
             Toast.SHORT = 1500;
             Toast.LONG = 3500;
-            Toast.style = "\nposition: absolute;\nfont-family: sans-serif;\npadding: 5px 10px;\nbackground: #e4F68F;\nfont-size: 10pt;\nline-height: 1.4em;\ncolor: #000;\nz-index: 32760;\ntransition: .2s ease;\nopacity: 0;\n";
+            Toast.style = "\nposition: absolute;\nfont-family: sans-serif;\npadding: 5px 10px;\nbackground: #e4F68F;\nfont-size: 10pt;\nline-height: 1.4em;\ncolor: #000;\nz-index: 32760;\nmargin-top: -10px;\ntransition: .2s ease;\nopacity: 0;\n";
             return Toast;
         }());
         UI.Toast = Toast;
     })(UI = MarkdownIME.UI || (MarkdownIME.UI = {}));
 })(MarkdownIME || (MarkdownIME = {}));
-/// <reference path="UI/Toast.ts" /> 
+/// <reference path="UI/Toast.ts" />
 /*!@preserve
     [MarkdownIME](https://github.com/laobubu/MarkdownIME)
     
@@ -1864,12 +1907,11 @@ var MarkdownIME;
      */
     function Scan(window) {
         var document = window.document;
-        var editors;
-        editors = [].slice.call(document.querySelectorAll('[contenteditable], [designMode]'));
+        var editors = [].slice.call(document.querySelectorAll('[contenteditable], [designMode]'));
         [].forEach.call(document.querySelectorAll('iframe'), function (i) {
             try {
                 var result = Scan(i.contentWindow);
-                editors = editors.concat(result);
+                [].push.apply(editors, result);
             }
             catch (err) {
             }
@@ -1898,7 +1940,7 @@ var MarkdownIME;
         Enhance(Scan(window)).forEach(function (editor) {
             if (!editor)
                 return;
-            MarkdownIME.UI.Toast.showToast("MarkdownIME Activated", editor.editor, MarkdownIME.UI.Toast.SHORT);
+            MarkdownIME.UI.Toast.showToast("MarkdownIME Activated", editor.editor, MarkdownIME.UI.Toast.SHORT, true);
         });
     }
     MarkdownIME.Bookmarklet = Bookmarklet;

@@ -1,5 +1,20 @@
+/**
+ * scrollIntoViewIfNeeded
+ *
+ * A Webkit stuff, but it works like a charm!
+ */
 interface Element {
     scrollIntoViewIfNeeded(centerIfNeeded?: boolean): any;
+}
+declare namespace MarkdownIME.Utils {
+    /** convert some chars to HTML entities (`&` -> `&amp;`) */
+    function text2html(text: string): string;
+    /** add slash chars for a RegExp */
+    function text2regex(text: string): string;
+    /** convert HTML entities to chars */
+    function html_entity_decode(html: string): string;
+    /** remove whitespace in the DOM text. works for textNode. */
+    function trim(str: string): string;
 }
 declare namespace MarkdownIME.Utils {
     namespace Pattern {
@@ -14,10 +29,6 @@ declare namespace MarkdownIME.Utils {
             var autoClose: RegExp;
         }
     }
-    /**
-     * Move the cursor to the end of one element.
-     */
-    function move_cursor_to_end(ele: Node): void;
     /**
      * Check if it's a BR or empty stuff.
      */
@@ -59,16 +70,6 @@ declare namespace MarkdownIME.Utils {
      * @returns {Element[]} the parents, exclude `node`, include `end`.
      */
     function build_parent_list(node: Node, end: Element): Element[];
-    /** convert some chars to HTML entities (`&` -> `&amp;`) */
-    function text2html(text: string): string;
-    /** add slash chars for a RegExp */
-    function text2regex(text: string): string;
-    /** convert HTML entities to chars */
-    function html_entity_decode(html: string): string;
-    /**
-     * remove whitespace in the DOM text. works for textNode.
-     */
-    function trim(str: string): string;
     /**
      * help one element wear a wrapper
      */
@@ -79,6 +80,10 @@ declare namespace MarkdownIME.Utils {
      * @see http://www.w3.org/TR/2011/WD-html-markup-20110113/syntax.html#void-element
      */
     function generateElementHTML(nodeName: string, props?: Object, innerHTML?: string): string;
+}
+declare namespace MarkdownIME.Utils {
+    /** Move the cursor to the end of one element. */
+    function move_cursor_to_end(ele: Node): void;
 }
 declare namespace MarkdownIME.Renderer {
     interface IInlineToken {
@@ -596,10 +601,18 @@ declare namespace MarkdownIME.UI {
         element: HTMLDivElement;
         status: ToastStatus;
         constructor(document: Document, text: string);
-        show(x: string, y: string, timeout?: number): void;
+        setPosition(left: number, topOrBottom: number, isBottom?: boolean): void;
+        show(timeout?: number): void;
         dismiss(): void;
-        /** A Quick way to show a temporary Toast over an Element. */
-        static showToast(text: string, coveron: HTMLElement, timeout?: number): Toast;
+        /**
+         * A Quick way to show a temporary Toast over an Element.
+         *
+         * @param {string} text     message to be shown
+         * @param {Element} ref     the location reference
+         * @param {number} timeout  time in ms. 0 = do not dismiss.
+         * @param {boolean} cover   true = cover on the ref. false = shown on top of the ref.
+         */
+        static showToast(text: string, ref: HTMLElement, timeout: number, cover?: boolean): Toast;
     }
 }
 /*!@preserve
@@ -623,7 +636,7 @@ declare namespace MarkdownIME {
     /**
      * Fetching contenteditable elements from the window and its iframe.
      */
-    function Scan(window: Window): Array<Element>;
+    function Scan(window: Window): Element[];
     /**
      * Enhance one or more editor.
      */
