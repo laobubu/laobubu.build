@@ -21,11 +21,7 @@ var MarkdownIME;
 (function (MarkdownIME) {
     var Utils;
     (function (Utils) {
-        /** convert some chars to HTML entities (`&` -> `&amp;`) */
-        function text2html(text) {
-            return text.replace(/(&|  |"|\<|\>)/g, function (name) { return _text2html_dict[name]; });
-        }
-        Utils.text2html = text2html;
+        /** dict for text2html(string) */
         var _text2html_dict = {
             '&': '&amp;',
             '  ': '&nbsp;',
@@ -33,16 +29,17 @@ var MarkdownIME;
             '<': '&lt;',
             '>': '&gt;'
         };
+        /** convert some chars to HTML entities (`&` -> `&amp;`) */
+        function text2html(text) {
+            return text.replace(/(&|  |"|\<|\>)/g, function (name) { return _text2html_dict[name]; });
+        }
+        Utils.text2html = text2html;
         /** add slash chars for a RegExp */
         function text2regex(text) {
             return text.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
         }
         Utils.text2regex = text2regex;
-        /** convert HTML entities to chars */
-        function html_entity_decode(html) {
-            return html.replace(/&(nbsp|amp|quot|lt|gt);/g, function (whole, name) { return _html_entity_decode_dict[name]; });
-        }
-        Utils.html_entity_decode = html_entity_decode;
+        /** dict for html_entity_decode(string) */
         var _html_entity_decode_dict = {
             'nbsp': String.fromCharCode(160),
             'amp': '&',
@@ -50,6 +47,11 @@ var MarkdownIME;
             'lt': '<',
             'gt': '>'
         };
+        /** convert HTML entities to chars */
+        function html_entity_decode(html) {
+            return html.replace(/&(nbsp|amp|quot|lt|gt);/g, function (whole, name) { return _html_entity_decode_dict[name]; });
+        }
+        Utils.html_entity_decode = html_entity_decode;
         /** remove whitespace in the DOM text. works for textNode. */
         function trim(str) {
             return str.replace(/[\t\r\n ]+/, ' ').trim();

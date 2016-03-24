@@ -1,0 +1,262 @@
+<!doctype html>
+<html class="default no-js">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>markdown-ime</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="stylesheet" href="assets/css/main.css">
+	<script src="assets/js/modernizr.js"></script>
+</head>
+<body>
+<header>
+	<div class="tsd-page-toolbar">
+		<div class="container">
+			<div class="table-wrap">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+					<div class="field">
+						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
+						<input id="tsd-search-field" type="text" />
+					</div>
+					<ul class="results">
+						<li class="state loading">Preparing search index...</li>
+						<li class="state failure">The search index is not available</li>
+					</ul>
+					<a href="index.html" class="title">markdown-ime</a>
+				</div>
+				<div class="table-cell" id="tsd-widgets">
+					<div id="tsd-filter">
+						<a href="#" class="tsd-widget options no-caption" data-toggle="options">Options</a>
+						<div class="tsd-filter-group">
+							<div class="tsd-select" id="tsd-filter-visibility">
+								<span class="tsd-select-label">All</span>
+								<ul class="tsd-select-list">
+									<li data-value="public">Public</li>
+									<li data-value="protected">Public/Protected</li>
+									<li data-value="private" class="selected">All</li>
+								</ul>
+							</div>
+							<input type="checkbox" id="tsd-filter-inherited" checked />
+							<label class="tsd-widget" for="tsd-filter-inherited">Inherited</label>
+							<input type="checkbox" id="tsd-filter-externals" checked />
+							<label class="tsd-widget" for="tsd-filter-externals">Externals</label>
+							<input type="checkbox" id="tsd-filter-only-exported" />
+							<label class="tsd-widget" for="tsd-filter-only-exported">Only exported</label>
+						</div>
+					</div>
+					<a href="#" class="tsd-widget menu no-caption" data-toggle="menu">Menu</a>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="tsd-page-title">
+		<div class="container">
+			<ul class="tsd-breadcrumb">
+				<li>
+					<a href="globals.html">Globals</a>
+				</li>
+			</ul>
+			<h1> markdown-ime</h1>
+		</div>
+	</div>
+</header>
+<div class="container container-main">
+	<div class="row">
+		<div class="col-8 col-content">
+			<div class="tsd-panel tsd-typography">
+				<h1 id="markdownime">MarkdownIME</h1>
+				<p><a href="https://travis-ci.org/laobubu/MarkdownIME"><img src="https://travis-ci.org/laobubu/MarkdownIME.svg?branch=master" alt="Build Status"></a></p>
+				<p>MarkdownIME is a fresh and fast way to make text formatted, and a minimal &amp; powerful web rich-text editor.</p>
+				<p><strong>MINIMAL</strong>: No buttons or stylesheets. It only require one <code>div[contentEditable]</code> and two <code>script</code> tags.</p>
+				<p><strong>POWERFUL</strong>: User types with Markdown, and MarkdownIME gets the text formatted, instantly!</p>
+				<p><a href="http://laobubu.github.io/MarkdownIME/">Try out the demo</a>. Works like a charm on desktop and mobile!</p>
+				<p><img src="http://laobubu.github.io/MarkdownIME/demo.gif?cache3" alt=""></p>
+				<h2 id="quickstart-guide">Quickstart / Guide</h2>
+				<p>Visit <a href="http://laobubu.github.io/MarkdownIME/">http://laobubu.github.io/MarkdownIME/</a></p>
+				<h2 id="download">Download</h2>
+				<p>Newest build form Travis-CI:</p>
+				<ul>
+					<li>Uncompressed version: <a href="http://build.laobubu.net/MarkdownIME/MarkdownIME.js">http://build.laobubu.net/MarkdownIME/MarkdownIME.js</a></li>
+					<li>Uglified version: <a href="http://build.laobubu.net/MarkdownIME/MarkdownIME.min.js">http://build.laobubu.net/MarkdownIME/MarkdownIME.min.js</a></li>
+					<li>Documentation: <a href="http://build.laobubu.net/MarkdownIME/doc/">http://build.laobubu.net/MarkdownIME/doc/</a></li>
+				</ul>
+				<h2 id="developing">Developing</h2>
+				<ol>
+					<li>Install dev tools: <code>npm install</code></li>
+					<li>Code: use <a href="https://code.visualstudio.com/">VSCode</a></li>
+					<li>Test on Browser: <code>npm run go</code></li>
+					<li>Build: <code>make</code></li>
+				</ol>
+				<h2 id="features">Features</h2>
+				<h3 id="supported-markdown-syntax">Supported Markdown Syntax</h3>
+				<h4 id="span-elements">Span Elements</h4>
+				<ul>
+					<li><a href="http://laobubu.net">Links</a></li>
+					<li><strong><em>Emphasis</em></strong></li>
+					<li><code>In-line Code</code></li>
+					<li><del>Strikethrough</del></li>
+					<li>Images</li>
+				</ul>
+				<h4 id="block-elements">Block Elements</h4>
+				<ul>
+					<li>Headers (beginning with <code>#</code> )</li>
+					<li>Horizontal</li>
+					<li>(Nested) Lists</li>
+					<li>(Nested) Blockquote</li>
+					<li>Code Block</li>
+				</ul>
+				<h4 id="tables">Tables</h4>
+				<p>Create a table with <code>| table | column | headers |</code></p>
+				<h3 id="supported-editor">Supported Editor</h3>
+				<ul>
+					<li><strong>Vanilla contenteditable elements</strong> - browsers solve everything.</li>
+					<li><strong>TinyMCE</strong> - now typing on EverNote and others is easier.</li>
+				</ul>
+				<h2 id="license">LICENSE</h2>
+				<pre><code>Copyright 2016 laobubu
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not <span class="hljs-operator"><span class="hljs-keyword">use</span> this <span class="hljs-keyword">file</span> <span class="hljs-keyword">except</span> <span class="hljs-keyword">in</span> compliance <span class="hljs-keyword">with</span> the License.
+You may obtain a copy <span class="hljs-keyword">of</span> the License <span class="hljs-keyword">at</span>
+
+    <span class="hljs-keyword">http</span>://www.apache.org/licenses/LICENSE-<span class="hljs-number">2.0</span>
+
+Unless <span class="hljs-keyword">required</span> <span class="hljs-keyword">by</span> applicable law <span class="hljs-keyword">or</span> agreed <span class="hljs-keyword">to</span> <span class="hljs-keyword">in</span> writing, software
+<span class="hljs-keyword">distributed</span> <span class="hljs-keyword">under</span> the License <span class="hljs-keyword">is</span> <span class="hljs-keyword">distributed</span> <span class="hljs-keyword">on</span> an <span class="hljs-string">"AS IS"</span> BASIS,
+<span class="hljs-keyword">WITHOUT</span> WARRANTIES <span class="hljs-keyword">OR</span> CONDITIONS <span class="hljs-keyword">OF</span> <span class="hljs-keyword">ANY</span> KIND, either express <span class="hljs-keyword">or</span> implied.
+See the License <span class="hljs-keyword">for</span> the specific <span class="hljs-keyword">language</span> governing permissions <span class="hljs-keyword">and</span>
+limitations <span class="hljs-keyword">under</span> the License.</span>
+</code></pre>
+			</div>
+		</div>
+		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
+			<nav class="tsd-navigation primary">
+				<ul>
+					<li class="globals  ">
+						<a href="globals.html"><em>Globals</em></a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_addon_emojiaddon_.html">"<wbr>Addon/<wbr>Emoji<wbr>Addon"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_addon_mathaddon_.html">"<wbr>Addon/<wbr>Math<wbr>Addon"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_editor_.html">"<wbr>Editor"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_main_.html">"<wbr>Main"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_renderer_.html">"<wbr>Renderer"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_renderer_blockrenderer_.html">"<wbr>Renderer/<wbr>Block<wbr>Renderer"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_renderer_inline_inlinebracketrulebase_.html">"<wbr>Renderer/<wbr>Inline/<wbr>Inline<wbr>Bracket<wbr>Rule<wbr>Base"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_renderer_inline_markdownrules_.html">"<wbr>Renderer/<wbr>Inline/<wbr>Markdown<wbr>Rules"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_renderer_inlinerenderer_.html">"<wbr>Renderer/<wbr>Inline<wbr>Renderer"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_ui_.html">"UI"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_ui_toast_.html">"UI/<wbr>Toast"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_utils_.html">"<wbr>Utils"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_utils_browser_.html">"<wbr>Utils/<wbr>Browser"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_utils_dom_.html">"<wbr>Utils/DOM"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_utils_polyfill_.html">"<wbr>Utils/<wbr>Polyfill"</a>
+					</li>
+					<li class=" tsd-kind-external-module">
+						<a href="modules/_utils_string_.html">"<wbr>Utils/<wbr>String"</a>
+					</li>
+				</ul>
+			</nav>
+			<nav class="tsd-navigation secondary menu-sticky">
+				<ul class="before-current">
+				</ul>
+			</nav>
+		</div>
+	</div>
+</div>
+<footer class="with-border-bottom">
+	<div class="container">
+		<h2>Legend</h2>
+		<div class="tsd-legend-group">
+			<ul class="tsd-legend">
+				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
+				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
+				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
+				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
+				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
+				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
+				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
+				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
+				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
+				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
+				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
+				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
+				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
+			</ul>
+			<ul class="tsd-legend">
+				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
+				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
+			</ul>
+		</div>
+	</div>
+</footer>
+<div class="container tsd-generator">
+	<p>Generated using <a href="http://typedoc.io" target="_blank">TypeDoc</a></p>
+</div>
+<div class="overlay"></div>
+<script src="assets/js/main.js"></script>
+<script>if (location.protocol == 'file:') document.write('<script src="assets/js/search.js"><' + '/script>');</script>
+</body>
+</html>
