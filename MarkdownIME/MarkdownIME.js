@@ -1602,7 +1602,7 @@ var MarkdownIME;
          * Create new line after one node and move cursor to it.
          *
          * @param   {Element} node - current line element.
-         * @returns {boolean} successful or not.
+         * @returns {Element} new line element or `null`
          */
         Editor.prototype.CreateNewLine = function (node) {
             var newElement;
@@ -1611,21 +1611,17 @@ var MarkdownIME;
             if (re.cell.test(node.nodeName)) {
                 newElement = this.CreateNewCell(node);
                 MarkdownIME.Utils.move_cursor_to_end(newElement);
-                return true;
+                return newElement;
             }
             //using browser way to create new line will get dirty format
             //so we create one new line without format.
-            if (re.line.test(node.nodeName) ||
-                re.pre.test(node.nodeName) ||
-                re.li.test(node.nodeName) ||
-                re.hr.test(node.nodeName)) {
-                var tagName = re.li.test(node.nodeName) ? "li" : null;
-                newElement = this.GenerateEmptyLine(tagName);
-                node.parentNode.insertBefore(newElement, node.nextSibling);
-                MarkdownIME.Utils.move_cursor_to_end(newElement);
-                return true;
-            }
-            return false;
+            var tagName = null;
+            if (re.li.test(node.nodeName))
+                tagName = "li";
+            newElement = this.GenerateEmptyLine(tagName);
+            node.parentNode.insertBefore(newElement, node.nextSibling);
+            MarkdownIME.Utils.move_cursor_to_end(newElement);
+            return newElement;
         };
         /**
          * Handler for keydown
@@ -1741,7 +1737,11 @@ var MarkdownIME;
         Editor.prototype.keydownHandler_Table = function (ev) {
             var keyCode = ev.keyCode || ev.which;
             var noAdditionalKeys = !(ev.shiftKey || ev.ctrlKey || ev.altKey);
-            if ((keyCode !== 9) && (keyCode < 37 || keyCode > 40))
+            if ((keyCode !== 8) &&
+                (keyCode !== 45) &&
+                (keyCode !== 46) &&
+                (keyCode !== 9) &&
+                (keyCode < 37 || keyCode > 40))
                 return false;
             var range = this.selection.getRangeAt(0);
             var parent_tree = MarkdownIME.Utils.build_parent_list(range.startContainer, this.editor);
@@ -1760,6 +1760,46 @@ var MarkdownIME;
                 return false; // not found the cell. awkward but shall not happen
             var focus = null;
             switch (keyCode) {
+                case 46: //DELETE
+                case 8:
+                    if (noAdditionalKeys && td.nodeName === "TH" && !td.textContent.trim()) {
+                        focus = (keyCode === 46 && td.nextElementSibling) || td.previousElementSibling;
+                        if (!focus) {
+                            //the whole table is deleted.
+                            focus = table.nextElementSibling || this.CreateNewLine(table);
+                            table.parentElement.removeChild(table);
+                        }
+                        else {
+                            for (var i = 0, c = table.childElementCount; i < c; i++) {
+                                var tbody = table.children[i];
+                                for (var i_2 = 0, c_1 = tbody.childElementCount; i_2 < c_1; i_2++) {
+                                    var tr_1 = tbody.children[i_2];
+                                    tr_1.removeChild(tr_1.children[td_index]);
+                                }
+                            }
+                        }
+                    }
+                    else if (noAdditionalKeys && !tr.textContent.trim()) {
+                        focus = tr.nextElementSibling || table.nextElementSibling || this.CreateNewLine(table);
+                        if (focus.firstElementChild)
+                            focus = focus.firstElementChild;
+                        tr.parentElement.removeChild(tr);
+                    }
+                    break;
+                case 45:
+                    if (!ev.shiftKey)
+                        td_index++; //insert column after the current
+                    for (var i = 0, c = table.childElementCount; i < c; i++) {
+                        var tbody = table.children[i];
+                        for (var i_3 = 0, c_2 = tbody.childElementCount; i_3 < c_2; i_3++) {
+                            var tr_2 = tbody.children[i_3];
+                            var ref = tr_2.children[td_index];
+                            var newTd = this.document.createElement(tr_2.children[0].tagName);
+                            tr_2.insertBefore(newTd, ref);
+                        }
+                    }
+                    focus = td.parentElement.children[td_index];
+                    break;
                 case 9:
                     if (noAdditionalKeys)
                         focus = td.nextElementSibling ||

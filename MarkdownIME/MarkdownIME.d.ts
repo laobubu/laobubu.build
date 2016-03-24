@@ -541,9 +541,9 @@ declare namespace MarkdownIME {
          * Create new line after one node and move cursor to it.
          *
          * @param   {Element} node - current line element.
-         * @returns {boolean} successful or not.
+         * @returns {Element} new line element or `null`
          */
-        CreateNewLine(node: Element): boolean;
+        CreateNewLine(node: Element): Element;
         /**
          * Handler for keydown
          */
