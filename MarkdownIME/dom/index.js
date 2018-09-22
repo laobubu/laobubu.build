@@ -155,14 +155,14 @@ export function getViewport(_window, considerScroll) {
         bottom: top + height,
     };
 }
-function rectContains(container, subRect) {
-    if (container.left >= subRect.left)
+function rectContains(container, subRect, tolerance) {
+    if (container.left - subRect.left >= tolerance)
         return 3 /* LEFT */;
-    if (container.right <= subRect.right)
+    if (subRect.right - container.right >= tolerance)
         return 4 /* RIGHT */;
-    if (container.top >= subRect.top)
+    if (container.top - subRect.top >= tolerance)
         return 1 /* ABOVE */;
-    if (container.bottom <= subRect.bottom)
+    if (subRect.bottom - container.bottom >= tolerance)
         return 2 /* BELOW */;
     return 0 /* CONTAINED */;
 }
@@ -186,7 +186,7 @@ export function scrollIntoViewIfNeeded(node) {
     while (scrollArg === void 0) {
         var container = node_it.parentElement;
         var containerRect = (node_it === body) ? getViewport(window, false) : container.getBoundingClientRect();
-        var rectRelation = rectContains(containerRect, nodeRect);
+        var rectRelation = rectContains(containerRect, nodeRect, 5);
         if (rectRelation === 3 /* LEFT */ || rectRelation === 1 /* ABOVE */)
             scrollArg = true;
         if (rectRelation === 4 /* RIGHT */ || rectRelation === 2 /* BELOW */)
