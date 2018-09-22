@@ -46,9 +46,13 @@ interface ClientRect {
  *
  * @returns Non-Standard ClientRect (because IE/Edge not supports DOMRect)
  */
-export declare function getViewport(_window?: Window): ClientRect;
+export declare function getViewport(_window?: Window, considerScroll?: boolean): ClientRect;
 /**
  * a much better polyfill for scrollIntoViewIfNeeded
+ *
+ * @returns - `true` -- trigged and now node is on the top edge.
+ *          - `false` -- trigged and node is on the bottom edge.
+ *          - `undefined` -- nothing happened
  */
-export declare function scrollIntoViewIfNeeded(node: HTMLElement): void;
+export declare function scrollIntoViewIfNeeded(node: HTMLElement): boolean;
 export {};

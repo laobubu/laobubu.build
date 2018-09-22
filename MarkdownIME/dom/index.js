@@ -142,11 +142,11 @@ export function isTextNode(node) {
  *
  * @returns Non-Standard ClientRect (because IE/Edge not supports DOMRect)
  */
-export function getViewport(_window) {
+export function getViewport(_window, considerScroll) {
     if (!_window)
         _window = win || window;
-    var left = _window.pageXOffset;
-    var top = _window.pageYOffset;
+    var left = considerScroll ? _window.pageXOffset : 0;
+    var top = considerScroll ? _window.pageYOffset : 0;
     var height = _window.innerHeight;
     var width = _window.innerWidth;
     return {
@@ -168,6 +168,10 @@ function rectContains(container, subRect) {
 }
 /**
  * a much better polyfill for scrollIntoViewIfNeeded
+ *
+ * @returns - `true` -- trigged and now node is on the top edge.
+ *          - `false` -- trigged and node is on the bottom edge.
+ *          - `undefined` -- nothing happened
  */
 export function scrollIntoViewIfNeeded(node) {
     if ('scrollIntoViewIfNeeded' in node) { // Chrome only stuff
@@ -178,19 +182,20 @@ export function scrollIntoViewIfNeeded(node) {
     var window = body.ownerDocument.defaultView;
     var scrollArg = void 0;
     var nodeRect = node.getBoundingClientRect();
+    var node_it = node;
     while (scrollArg === void 0) {
-        var container = node.parentElement;
-        var containerRect = (node === body) ? getViewport(window) : container.getBoundingClientRect();
+        var container = node_it.parentElement;
+        var containerRect = (node_it === body) ? getViewport(window, false) : container.getBoundingClientRect();
         var rectRelation = rectContains(containerRect, nodeRect);
         if (rectRelation === 3 /* LEFT */ || rectRelation === 1 /* ABOVE */)
             scrollArg = true;
         if (rectRelation === 4 /* RIGHT */ || rectRelation === 2 /* BELOW */)
             scrollArg = false;
-        if (node === body)
+        if (node_it === body)
             break;
-        node = container;
-        nodeRect = containerRect;
+        node_it = container;
     }
     if (scrollArg !== void 0)
         node.scrollIntoView(scrollArg);
+    return scrollArg;
 }

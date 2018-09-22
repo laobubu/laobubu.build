@@ -1,6 +1,6 @@
 {
   "name": "markdown-ime",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "unpkg": "MarkdownIME.js",
   "types": "MarkdownIME.d.ts",
@@ -19,7 +19,6 @@
   "scripts": {
     "build": "webpack --mode production && tsc",
     "dev": "webpack --watch --mode development",
-    "prepare": "npm run build && node scripts/prepare.js",
     "test": "node scripts/test-with-puppeteer.js"
   }
 }
